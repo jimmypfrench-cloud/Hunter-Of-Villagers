@@ -1,9 +1,0 @@
-{
-  "name":"hunter-of-villagers-multiplayer",
-  "version":"1.0.0",
-  "private":true,
-  "description":"Multiplayer server for Hunter of Villagers",
-  "main":"server.js",
-  "scripts":{"start":"node server.js"},
-  "dependencies":{"express":"^4.21.2","ws":"^8.18.0"}
-}
