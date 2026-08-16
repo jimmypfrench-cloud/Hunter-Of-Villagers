@@ -1,0 +1,3303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hunter of Villagers</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;700&display=swap');
+  :root{ --iron:#2b2926; --blood:#8a1f1f; --blood-bright:#c73e3e; --amber:#d68a3c; --bone:#e8dcc8; --moss:#4a5d3a; --steel:#9aa3ab; }
+  html,body{margin:0;padding:0;overflow:hidden;background:#0b0906;height:100%;}
+  canvas{display:block;}
+  #hud{ position:fixed; inset:0; pointer-events:none; font-family:'Cinzel',serif; color:var(--bone); text-shadow:0 2px 6px rgba(0,0,0,.9); }
+  .crosshair{ position:absolute; top:50%; left:50%; width:22px; height:22px; margin:-11px 0 0 -11px; }
+  .crosshair:before, .crosshair:after{ content:''; position:absolute; background:var(--bone); opacity:.85; }
+  .crosshair:before{ left:50%; top:0; width:2px; height:100%; margin-left:-1px;}
+  .crosshair:after{ top:50%; left:0; height:2px; width:100%; margin-top:-1px;}
+  .crosshair.hit:before, .crosshair.hit:after{ background:var(--blood-bright); }
+  #drawBar{ position:absolute; top:50%; left:50%; margin:18px 0 0 -30px; width:60px; height:6px; background:rgba(0,0,0,.5); border:1px solid rgba(232,220,200,.4); border-radius:3px; overflow:hidden; display:none;}
+  #drawBarFill{ height:100%; width:0%; background:linear-gradient(90deg,#d68a3c,#ffdca0); }
+  #topbar{ position:absolute; top:18px; left:0; right:0; display:flex; justify-content:space-between; padding:0 26px; gap:10px; }
+  .pill{ background:linear-gradient(180deg, rgba(30,26,20,.85), rgba(15,12,9,.85)); border:1px solid rgba(214,138,60,.4); border-radius:6px; padding:8px 16px; letter-spacing:.5px; }
+  .gold{ font-family:'Cinzel Decorative', serif; font-weight:700; color:var(--amber); font-size:20px; }
+  .kills{ font-size:13px; }
+  .rightpills{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; max-width:60%;}
+  #bars{ position:absolute; bottom:22px; left:26px; width:260px; }
+  .bar-label{ font-size:11px; letter-spacing:2px; text-transform:uppercase; opacity:.8; margin-bottom:3px;}
+  .bar-track{ width:100%; height:14px; background:rgba(0,0,0,.55); border:1px solid rgba(232,220,200,.25); border-radius:3px; overflow:hidden; margin-bottom:10px; }
+  .bar-fill{ height:100%; transition:width .12s ease-out; }
+  #healthFill{ background:linear-gradient(90deg,#5a0f0f,var(--blood-bright)); }
+  #armorFill{ background:linear-gradient(90deg,#3a5a6e,#9ecbe0); }
+  #staminaFill{ background:linear-gradient(90deg,#8a5a1f,var(--amber)); }
+  #enemyCount{ position:absolute; bottom:22px; right:26px; text-align:right; font-size:13px; letter-spacing:1px; }
+  #enemyCount b{ color:var(--blood-bright); font-size:16px; }
+  #bossBar{ position:absolute; top:78px; left:50%; transform:translateX(-50%); width:440px; max-width:82vw; text-align:center; }
+  #bossBar .bossName{ font-family:'Cinzel Decorative',serif; font-size:16px; color:var(--blood-bright); letter-spacing:4px; text-transform:uppercase; margin-bottom:5px; text-shadow:0 0 12px rgba(199,62,62,.6), 0 2px 0 #000; }
+  #bossBar .bar-track{ height:18px; border-color:rgba(199,62,62,.5); }
+  #bossFill{ background:linear-gradient(90deg,#4a0808,#ff2e2e); }
+  #vignette{ position:absolute; inset:0; box-shadow:inset 0 0 220px 40px rgba(150,0,0,0); transition:box-shadow .08s; }
+  #banner{ position:absolute; top:60px; left:50%; transform:translateX(-50%); font-family:'Cinzel Decorative',serif; font-size:15px; color:var(--blood-bright); letter-spacing:1px; opacity:0; transition:opacity .3s; white-space:nowrap; }
+  #overlay{ position:fixed; inset:0; background:radial-gradient(ellipse at center, rgba(30,20,12,.94), rgba(4,3,2,.99)); display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center; font-family:'Cinzel',serif; color:var(--bone); z-index:10; overflow-y:auto; padding:30px 16px; box-sizing:border-box; }
+  #overlay h1{ font-family:'Cinzel Decorative',serif; font-size:38px; color:var(--blood-bright); margin:0 0 4px; text-shadow:0 0 30px rgba(199,62,62,.5), 0 4px 0 #000; letter-spacing:1.5px; }
+  #overlay .sub{ color:var(--amber); letter-spacing:4px; font-size:12px; margin-bottom:24px; text-transform:uppercase;}
+  #overlay .controls{ font-size:13px; line-height:1.85; color:#cfc3ae; margin-bottom:20px; max-width:560px;}
+  #overlay .controls b{ color:var(--amber); }
+  .bigbtn{ font-family:'Cinzel Decorative',serif; font-size:18px; padding:14px 40px; background:linear-gradient(180deg,var(--blood-bright),var(--blood)); color:var(--bone); border:1px solid rgba(232,220,200,.4); border-radius:4px; cursor:pointer; letter-spacing:2px; box-shadow:0 6px 18px rgba(0,0,0,.5); margin-top:6px; }
+  .bigbtn:hover{ filter:brightness(1.15); }
+  .bigbtn:disabled{ filter:grayscale(.8) brightness(.6); cursor:not-allowed; }
+  #hint{ position:fixed; top:16px; left:50%; transform:translateX(-50%); color:var(--bone); font-family:'Cinzel',serif; font-size:13px; opacity:.75; z-index:5; pointer-events:none; }
+  .statusrow{ display:flex; gap:18px; margin-bottom:20px; font-size:12.5px; color:var(--steel); flex-wrap:wrap; justify-content:center;}
+  .statusrow b{ color:var(--amber); }
+  .cardgrid{ display:flex; gap:16px; flex-wrap:wrap; justify-content:center; max-width:1040px; margin-bottom:22px; }
+  .card{ width:205px; background:linear-gradient(180deg, rgba(40,32,22,.9), rgba(18,14,10,.92)); border:1px solid rgba(214,138,60,.35); border-radius:8px; padding:14px; text-align:left; position:relative; }
+  .card.locked{ filter:grayscale(.7) brightness(.55); }
+  .card h3{ font-family:'Cinzel Decorative',serif; font-size:15px; margin:0 0 4px; color:var(--bone); }
+  .card .diff{ font-size:10.5px; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px; }
+  .diff.Easy{ color:#8fbf6a; } .diff.Medium{ color:var(--amber); } .diff.Hard{ color:var(--blood-bright); }
+  .diff.Brutal{ color:#ff2e2e; text-shadow:0 0 8px rgba(255,46,46,.6); }
+  .diff.Nightmare{ color:#b967ff; text-shadow:0 0 8px rgba(185,103,255,.7); }
+  .card .desc{ font-size:11.5px; color:#cfc3ae; line-height:1.6; margin-bottom:6px; }
+  .card .mix{ font-size:10px; color:#8a97a3; margin-bottom:10px; letter-spacing:.3px; }
+  .card button{ width:100%; font-family:'Cinzel',serif; font-weight:700; padding:9px; background:rgba(138,31,31,.35); border:1px solid var(--blood-bright); color:var(--bone); border-radius:4px; cursor:pointer; letter-spacing:1px; }
+  .card button:hover{ background:rgba(199,62,62,.55); }
+  .card button:disabled{ background:rgba(80,80,80,.2); border-color:#555; color:#888; cursor:not-allowed; }
+  .card .clearedTag{ position:absolute; top:10px; right:10px; font-size:10px; color:#8fbf6a; letter-spacing:1px;}
+  .sectionLabel{ font-family:'Cinzel Decorative',serif; font-size:13px; color:var(--amber); letter-spacing:2px; text-transform:uppercase; margin:4px 0 12px; }
+  .shopgrid{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:1000px; margin-bottom:20px;}
+  .wcard{ width:180px; background:linear-gradient(180deg, rgba(40,32,22,.9), rgba(18,14,10,.92)); border:1px solid rgba(154,163,171,.35); border-radius:8px; padding:12px; text-align:left; }
+  .wcard.equipped{ border-color:#8fbf6a; box-shadow:0 0 14px rgba(143,191,106,.25); }
+  .wcard h4{ font-family:'Cinzel Decorative',serif; font-size:14px; margin:0 0 5px; color:var(--bone);}
+  .wcard .stat{ font-size:10.5px; color:#b8ac96; margin-bottom:2px; }
+  .wcard button{ margin-top:9px; width:100%; font-family:'Cinzel',serif; font-weight:700; padding:8px; border-radius:4px; cursor:pointer; background:rgba(214,138,60,.25); border:1px solid var(--amber); color:var(--bone); font-size:11.5px; letter-spacing:1px; }
+  .wcard button.owned{ background:rgba(143,191,106,.2); border-color:#8fbf6a; }
+  .wcard button:disabled{ background:rgba(80,80,80,.2); border-color:#555; color:#888; cursor:not-allowed; }
+  .allybox{ width:260px; background:linear-gradient(180deg, rgba(40,32,22,.9), rgba(18,14,10,.92)); border:1px solid rgba(90,140,200,.4); border-radius:8px; padding:14px; margin-bottom:22px; text-align:center; }
+  .allybox h4{ font-family:'Cinzel Decorative',serif; font-size:14px; margin:0 0 8px; color:var(--bone);}
+
+  /* ================= MULTIPLAYER UI ================= */
+  #mpPanel{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(30,20,12,.96),rgba(4,3,2,.995));display:none;align-items:center;justify-content:center;z-index:30;font-family:'Cinzel',serif;color:var(--bone);padding:20px;box-sizing:border-box}
+  #mpPanel .mpBox{width:520px;max-width:94vw;background:linear-gradient(180deg,rgba(40,32,22,.97),rgba(12,9,7,.98));border:1px solid rgba(214,138,60,.5);border-radius:8px;padding:24px;box-shadow:0 14px 45px rgba(0,0,0,.7);text-align:center}
+  #mpPanel h2{font-family:'Cinzel Decorative',serif;color:var(--blood-bright);letter-spacing:2px;margin:0 0 6px;font-size:26px}
+  #mpPanel .mpSub{font-size:11px;color:var(--amber);letter-spacing:2px;text-transform:uppercase;margin-bottom:18px}
+  #mpPanel label{display:block;text-align:left;font-size:10px;letter-spacing:1.5px;color:#b8ac96;margin:10px 0 5px;text-transform:uppercase}
+  #mpPanel input{width:100%;box-sizing:border-box;padding:11px 12px;border-radius:4px;border:1px solid rgba(154,163,171,.4);background:rgba(0,0,0,.4);color:var(--bone);font-family:'Cinzel',serif;font-size:12px;outline:none}
+  #mpPanel input:focus{border-color:var(--amber)}
+  .mpBtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:15px}
+  .mpBtn{font-family:'Cinzel',serif;font-weight:700;padding:10px 17px;background:rgba(138,31,31,.35);border:1px solid var(--blood-bright);color:var(--bone);border-radius:4px;cursor:pointer;letter-spacing:1px;font-size:11.5px}
+  .mpBtn:hover{background:rgba(199,62,62,.45)}
+  .mpBtn.secondary{background:rgba(214,138,60,.2);border-color:var(--amber)}
+  .mpBtn.gray{background:rgba(80,80,80,.2);border-color:#666}
+  #mpStatus{margin-top:15px;min-height:20px;font-size:11px;color:var(--steel);line-height:1.5}
+  #mpRoomDisplay{display:none;margin:14px 0 4px;padding:12px;background:rgba(0,0,0,.3);border:1px solid rgba(214,138,60,.3);border-radius:4px}
+  #mpRoomDisplay b{font-family:'Cinzel Decorative',serif;color:var(--amber);font-size:22px;letter-spacing:4px}
+  #mpRoster{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(214,138,60,.25);text-align:left}
+  #mpRoster .rosterLabel{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#b8ac96;margin-bottom:8px}
+  #mpRoster .rosterLabel b{color:var(--amber)}
+  #mpRoster .rosterRow{display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 8px;margin-bottom:4px;background:rgba(0,0,0,.25);border-radius:4px}
+  #mpRoster .rosterRow .dot{width:7px;height:7px;border-radius:50%;background:#8fbf6a;flex:none}
+  #mpRoster .rosterRow.dead .dot{background:#666}
+  #mpRoster .rosterRow .rosterName{flex:1}
+  #mpRoster .rosterRow .rosterTag{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--amber)}
+  /* mpHud sits above the menu overlay (z-index 10) too, so the player
+     count stays visible on the lobby/select/shop screens — not just
+     during an active raid. */
+  #mpHud{position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:11;display:none;pointer-events:none;font-family:'Cinzel',serif;color:var(--bone);background:rgba(12,9,7,.78);border:1px solid rgba(214,138,60,.35);border-radius:5px;padding:6px 11px;font-size:10px;letter-spacing:1px;text-shadow:0 2px 5px #000}
+  #mpHud b{color:var(--amber)}
+
+</style>
+</head>
+<body>
+<div id="hud" style="display:none">
+  <div class="crosshair" id="crosshair"></div>
+  <div id="drawBar"><div id="drawBarFill"></div></div>
+  <div id="topbar">
+    <div class="pill gold">⛁ <span id="goldCount">0</span> gold</div>
+    <div class="rightpills">
+      <div class="pill kills" id="weaponPill">🪓 Rusty Hand-Axe</div>
+      <div class="pill kills" id="bowPill" style="display:none">🏹 —</div>
+      <div class="pill kills">Fallen: <span id="killCount">0</span></div>
+    </div>
+  </div>
+  <div id="banner"></div>
+  <div id="bossBar" style="display:none">
+    <div class="bossName">Warlord</div>
+    <div class="bar-track"><div class="bar-fill" id="bossFill" style="width:100%"></div></div>
+  </div>
+  <div id="bars">
+    <div class="bar-label" id="armorLabel" style="display:none">Armor</div>
+    <div class="bar-track" id="armorTrack" style="display:none"><div class="bar-fill" id="armorFill" style="width:100%"></div></div>
+    <div class="bar-label">Health</div>
+    <div class="bar-track"><div class="bar-fill" id="healthFill" style="width:100%"></div></div>
+    <div class="bar-label">Stamina</div>
+    <div class="bar-track"><div class="bar-fill" id="staminaFill" style="width:100%"></div></div>
+  </div>
+  <div id="enemyCount">Enemies remaining<br><b id="enemyLeft">0</b><br><span style="opacity:.6">Q — retreat to camp</span></div>
+</div>
+<div id="vignette"></div>
+<div id="hint" style="display:none">Esc pause · Space switch weapon</div>
+<div id="overlay"></div>
+
+<div id="mpPanel">
+  <div class="mpBox">
+    <h2>MULTIPLAYER</h2>
+    <div class="mpSub">Prepare the hunt for another player</div>
+    <label for="mpServer">Server address</label>
+    <input id="mpServer" value="wss://hunter-of-villagers.onrender.com" spellcheck="false">
+    <label for="mpRoom">Room code</label>
+    <input id="mpRoom" maxlength="8" placeholder="Example: VILLAGE7" spellcheck="false">
+    <label for="mpName">Player name</label>
+    <input id="mpName" maxlength="18" value="Hunter" spellcheck="false">
+    <div id="mpRoomDisplay">Room: <b id="mpRoomCode">--------</b></div>
+    <div id="mpRoster"><div class="rosterLabel">Players joined: <b id="mpRosterCount">1</b></div><div id="mpRosterList"></div></div>
+    <div class="mpBtns">
+      <button class="mpBtn secondary" id="mpCreate">Create Room</button>
+      <button class="mpBtn" id="mpStart" style="display:none">START GAME</button>
+      <button class="mpBtn" id="mpJoin">Join Room</button>
+      <button class="mpBtn gray" id="mpDisconnect" style="display:none">Disconnect</button>
+      <button class="mpBtn gray" id="mpClose">Back</button>
+    </div>
+    <div id="mpStatus">Not connected. Start the multiplayer server, then create or join a room.</div>
+  </div>
+</div>
+<div id="mpHud">MULTIPLAYER · <b id="mpPlayerCount">1</b> PLAYER(S) · ROOM <b id="mpHudRoom">--------</b></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+
+  // ================= MULTIPLAYER CLIENT =================
+  // Multiplayer client for the Hunter of Villagers Render server.
+  let mpSocket = null;
+  let mpConnected = false;
+  let mpRoomCode = '';
+  let mpPlayerId = '';
+  let mpName = 'Hunter';
+  let mpIsHost = false;
+  let mpHostStarted = false;
+  let mpPlayerCount = 1;
+  let mpRoundId = 0;
+  let mpLastSend = 0;
+  let mpWorldSnapshotSent = false;
+  let mpLastWorldSend = 0;
+  const mpRemoteVillagers = new Map();
+  let mpLastLoadoutSend = 0;
+  const remotePlayers = new Map();
+  let mpRaidEnding = false;
+  let mpPendingRaidResult = null;
+  const mpDepositedIds = new Set();
+
+  function mpServerUrl(){
+    const el = document.getElementById('mpServer');
+    const val = ((el && el.value) || '').trim();
+    return val || 'wss://hunter-of-villagers.onrender.com';
+  }
+
+  function mpStatus(text,good=false){
+    const el=document.getElementById('mpStatus');
+    if(el){ el.textContent=text; el.style.color=good?'#9fe3a1':''; }
+  }
+
+  function mpMakeRoom(){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let r='';
+    for(let i=0;i<6;i++) r+=chars[Math.floor(Math.random()*chars.length)];
+    document.getElementById('mpRoom').value=r;
+    return r;
+  }
+
+  function mpOpen(){
+    document.getElementById('mpPanel').style.display='flex';
+    document.getElementById('mpRoom').value=mpRoomCode||'';
+    document.getElementById('mpName').value=mpName||'Hunter';
+    mpStatus(mpConnected ? `Connected to room ${mpRoomCode}.` : 'Create a room or join one with a room code.');
+  }
+
+  // Closing the panel NEVER disconnects the player.
+  function mpClose(){
+    document.getElementById('mpPanel').style.display='none';
+  }
+
+  function mpRemoveRemote(id){
+    const r=remotePlayers.get(id);
+    if(r){ scene.remove(r.group); remotePlayers.delete(id); }
+  }
+
+  function mpClearRemotes(){
+    [...remotePlayers.keys()].forEach(mpRemoveRemote);
+  }
+
+  function mpCreateRemote(id,data){
+    const group=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.CylinderGeometry(.34,.42,1.05,8),new THREE.MeshStandardMaterial({color:0x59636b,roughness:.9}));
+    body.position.y=.65; body.castShadow=true;
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.32,12,8),new THREE.MeshStandardMaterial({color:0xc8a27b,roughness:1}));
+    head.position.y=1.35; head.castShadow=true;
+    const cloak=new THREE.Mesh(new THREE.ConeGeometry(.52,.9,8),new THREE.MeshStandardMaterial({color:0x5a1010,roughness:1}));
+    cloak.position.y=.68; cloak.castShadow=true;
+    group.add(body,head,cloak);
+    group.position.set(data.x||0,data.y||0,data.z||0);
+    scene.add(group);
+    remotePlayers.set(id,{
+      group,
+      name:data.name||'Hunter',
+      target:new THREE.Vector3(data.x||0,data.y||0,data.z||0),
+      yaw:data.yaw||0,
+      host:!!data.host,
+      dead:!!data.dead
+    });
+  }
+
+  function mpApplyPlayers(list){
+    // The Render server sends players as an array in lobbyUpdate.
+    // Convert it to a consistent ID-keyed map before applying it.
+    const entries = Array.isArray(list)
+      ? list.map((p,i)=>[p.id || ('player-'+i), p])
+      : Object.entries(list || {});
+
+    const ids=new Set(entries.map(([id])=>id));
+
+    entries.forEach(([id,d])=>{
+      if(id===mpPlayerId) return;
+
+      const data={
+        x:Number(d.x)||0,
+        y:Number(d.y)||0,
+        z:Number(d.z)||0,
+        yaw:Number(d.yaw)||0,
+        name:d.name||'Hunter',
+        host:!!d.host,
+        dead:!!d.dead
+      };
+
+      if(!remotePlayers.has(id)) mpCreateRemote(id,data);
+
+      const r=remotePlayers.get(id);
+      if(r){
+        r.target.set(data.x,data.y,data.z);
+        r.yaw=data.yaw;
+        r.name=data.name;
+        r.host=!!data.host;
+        r.dead=!!data.dead;
+      }
+    });
+
+    [...remotePlayers.keys()].forEach(id=>{
+      if(!ids.has(id)) mpRemoveRemote(id);
+    });
+
+    const count=entries.length||1;
+    mpPlayerCount=count;
+    const c=document.getElementById('mpPlayerCount');
+    if(c)c.textContent=count;
+    mpRenderRoster();
+  }
+
+  // Renders the "Players joined" list inside the multiplayer panel.
+  // Called on every roster change (create/join, lobbyUpdate, disconnect)
+  // so the host/guests always have a visible area showing who's in.
+  function mpRenderRoster(){
+    const wrap=document.getElementById('mpRoster');
+    const countEl=document.getElementById('mpRosterCount');
+    const listEl=document.getElementById('mpRosterList');
+    if(!wrap || !listEl) return;
+
+    if(!mpConnected){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+
+    const rows=[{name:mpName||'Hunter', host:mpIsHost, dead:!!P.dead, self:true}];
+    remotePlayers.forEach(r=> rows.push({name:r.name, host:r.host, dead:r.dead, self:false}));
+
+    if(countEl) countEl.textContent=rows.length;
+    listEl.innerHTML = rows.map(r=>`
+      <div class="rosterRow${r.dead?' dead':''}">
+        <div class="dot"></div>
+        <div class="rosterName">${r.name}${r.self?' (You)':''}</div>
+        ${r.host?'<div class="rosterTag">Host</div>':(r.dead?'<div class="rosterTag">Down</div>':'')}
+      </div>`).join('');
+  }
+
+  function mpSend(type,payload={}){
+    if(!mpSocket || mpSocket.readyState!==WebSocket.OPEN) return;
+    const msg={type,...payload};
+    // Attach the current raid generation to every message once we are in
+    // multiplayer. This lets the server discard delayed packets from an
+    // earlier level, even when the same level is replayed.
+    if(msg.roundId===undefined && mpRoundId>0) msg.roundId=mpRoundId;
+    mpSocket.send(JSON.stringify(msg));
+  }
+
+  function mpMessageCurrent(m){
+    return m.roundId===undefined || m.roundId===null || Number(m.roundId)===Number(mpRoundId);
+  }
+
+  function mpGetLoadout(){
+    return {
+      ownedWeapons:Array.from(ownedWeapons),
+      equippedWeaponId:equippedWeaponId,
+      equippedBowId:equippedBowId,
+      weaponMode:weaponMode,
+      ownedArmor:Array.from(ownedArmor),
+      equippedArmorId:equippedArmorId,
+      ownedBoats:Array.from(ownedBoats),
+      recruitedAllies
+    };
+  }
+
+  // Player 2 receives the host's weapon inventory/equipment.
+  function mpApplyHostLoadout(loadout){
+    if(!loadout || !Array.isArray(loadout.ownedWeapons)) return;
+
+    ownedWeapons.clear();
+    loadout.ownedWeapons.forEach(id=>{
+      if(WEAPONS.some(w=>w.id===id)) ownedWeapons.add(id);
+    });
+    if(!ownedWeapons.has('rusty')) ownedWeapons.add('rusty');
+
+    const meleeId=ownedWeapons.has(loadout.equippedWeaponId) ? loadout.equippedWeaponId : 'rusty';
+    equipWeapon(meleeId);
+
+    if(loadout.equippedBowId && ownedWeapons.has(loadout.equippedBowId)){
+      equipWeapon(loadout.equippedBowId);
+    }else{
+      equippedBowId=null;
+      currentBow=null;
+      const bp=document.getElementById('bowPill');
+      if(bp) bp.style.display='none';
+    }
+
+    weaponMode=(loadout.weaponMode==='bow' && equippedBowId) ? 'bow' : 'melee';
+
+    ownedArmor.clear();
+    (loadout.ownedArmor||[]).forEach(id=>{ if(ARMORS.some(a=>a.id===id)) ownedArmor.add(id); });
+    equippedArmorId = loadout.equippedArmorId && ownedArmor.has(loadout.equippedArmorId) ? loadout.equippedArmorId : null;
+    currentArmor = equippedArmorId ? ARMORS.find(a=>a.id===equippedArmorId) : null;
+    if(typeof applyArmorStats==='function') applyArmorStats();
+
+    ownedBoats.clear();
+    (loadout.ownedBoats||[]).forEach(id=>{ if(BOATS.some(b=>b.id===id)) ownedBoats.add(id); });
+    recruitedAllies=Math.max(0,Math.floor(Number(loadout.recruitedAllies)||0));
+
+    updateWeaponModeVisuals();
+    if(typeof mpRenderRoster==='function') mpRenderRoster();
+  }
+
+  // Host calls this after ANY loadout-changing action (buying/equipping
+  // a weapon or armor piece, buying a boat, recruiting an ally, loading
+  // a password) so every guest mirrors the host's exact gear immediately
+  // — not just once at the end of a raid. A no-op for guests and for
+  // solo play.
+  let mpPendingHostLoadout = null;
+  function mpBroadcastHostLoadout(){
+    if(!mpConnected || !mpIsHost) return;
+    mpSend('hostLoadout',{loadout:mpGetLoadout()});
+  }
+
+  // Applying a full loadout mid-bow-draw can strip the equipped bow out
+  // from under the player and crash releaseDraw() the next time the
+  // mouse button comes up. Since this now also fires immediately on
+  // every host purchase (not just once at raid end), defer it until the
+  // draw finishes instead of dropping or forcing it through.
+  function mpApplyHostLoadoutSafe(loadout){
+    if(isDrawing){ mpPendingHostLoadout = loadout; return; }
+    mpApplyHostLoadout(loadout);
+  }
+
+
+
+  // STEP 1 FIX: the host sends the exact initial enemy/world positions.
+  // This makes the starting world identical even if the two browsers
+  // consume random numbers in a different order.
+  function mpMakeWorldSnapshot(){
+    return villagers.map((v,i)=>({
+      i,
+      x:v.mesh.position.x,
+      y:v.mesh.position.y,
+      z:v.mesh.position.z,
+      rot:v.mesh.rotation.y,
+      state:v.state || 'wander',
+      dead:!!v.dead
+    }));
+  }
+
+  function mpApplyWorldSnapshot(snapshot){
+    if(!Array.isArray(snapshot)) return;
+
+    const seen=new Set();
+
+    snapshot.forEach(d=>{
+      const v=villagers[d.i];
+      if(!v || !v.mesh) return;
+
+      const x=Number(d.x)||0;
+      const y=Number(d.y)||0;
+      const z=Number(d.z)||0;
+
+      let r=mpRemoteVillagers.get(d.i);
+      if(!r){
+        r={target:new THREE.Vector3(x,y,z),yaw:Number(d.rot)||0};
+        mpRemoteVillagers.set(d.i,r);
+      }
+
+      r.target.set(x,y,z);
+      r.yaw=Number(d.rot)||0;
+
+      // State/death are also synchronized so the remote player follows
+      // the host's villager state rather than running its own AI.
+      if(d.state) v.state=d.state;
+      if(typeof d.dead==='boolean') v.dead=d.dead;
+
+      seen.add(d.i);
+    });
+
+    // Remove stale targets if the host's world has fewer entities.
+    [...mpRemoteVillagers.keys()].forEach(i=>{
+      if(!seen.has(i)) mpRemoteVillagers.delete(i);
+    });
+  }
+
+  function mpClearRemoteVillagersOnly(){
+    mpRemoteVillagers.clear();
+  }
+
+  function mpUpdateRemoteVillagers(dt){
+    if(mpIsHost) return;
+
+    mpRemoteVillagers.forEach((r,i)=>{
+      const v=villagers[i];
+      if(!v || !v.mesh) return;
+
+      v.mesh.position.lerp(r.target,Math.min(1,dt*14));
+      v.mesh.rotation.y += (r.yaw-v.mesh.rotation.y)*Math.min(1,dt*14);
+    });
+  }
+
+  // ================= ALLY SYNC (host-authoritative) =================
+  // Guests no longer spawn or run their own allies at all (see
+  // buildVillageLocal) — this Map holds purely-visual mirrors of the
+  // host's real allies, one mesh per host-side ally index, the same
+  // way remotePlayers mirrors other players' avatars.
+  const remoteAllies = new Map();
+
+  function mpMakeAllySnapshot(){
+    return allies.map((a,i)=>({
+      i,
+      x:a.mesh.position.x,
+      y:a.mesh.position.y,
+      z:a.mesh.position.z,
+      rot:a.mesh.rotation.y,
+      dead: a.hp<=0
+    }));
+  }
+
+  function mpApplyAllySnapshot(snapshot){
+    if(!Array.isArray(snapshot)) return;
+    const seen=new Set();
+
+    snapshot.forEach(d=>{
+      const x=Number(d.x)||0, y=Number(d.y)||0, z=Number(d.z)||0;
+      let r=remoteAllies.get(d.i);
+      if(!r){
+        const mesh=makeBarbarian();
+        scene.add(mesh);
+        r={mesh, target:new THREE.Vector3(x,y,z), yaw:Number(d.rot)||0, dead:!!d.dead};
+        remoteAllies.set(d.i,r);
+      }
+      r.target.set(x,y,z);
+      r.yaw=Number(d.rot)||0;
+      r.dead=!!d.dead;
+      seen.add(d.i);
+    });
+
+    [...remoteAllies.keys()].forEach(i=>{
+      if(!seen.has(i)) mpRemoveRemoteAlly(i);
+    });
+  }
+
+  function mpRemoveRemoteAlly(i){
+    const r=remoteAllies.get(i);
+    if(r){ scene.remove(r.mesh); remoteAllies.delete(i); }
+  }
+
+  function mpClearRemoteAllies(){
+    [...remoteAllies.keys()].forEach(mpRemoveRemoteAlly);
+  }
+
+  function mpStartSelectedLevel(level,fromHost=false){
+    const idx=Number(level);
+    if(!Number.isInteger(idx) || !VILLAGES[idx]){
+      mpStatus('The host selected an invalid level.');
+      return;
+    }
+
+    // Build the same level locally on every computer.
+    buildVillage(idx);
+
+    // Host sends the exact starting world layout to Player 2.
+    if(fromHost){
+      mpWorldSnapshotSent=true;
+      mpSend('playerUpdate',{
+        data:{
+          worldSnapshot:mpMakeWorldSnapshot(),
+          worldLevel:idx
+        }
+      });
+    }
+
+    phase='raid';
+    mpRaidEnding=false;
+    mpPendingRaidResult=null;
+    mpDepositedIds.clear();
+    mpWorldSnapshotSent=false;
+    mpLastWorldSend=0;
+    P.dead=false;
+    P.health=P.maxHealth;
+    P.armor=P.maxArmor;
+    intentionalUnlock=true;
+    overlay.style.display='none';
+    document.getElementById('hud').style.display='block';
+    document.getElementById('mpPanel').style.display='none';
+    showBanner(fromHost ? 'LEVEL STARTED' : 'THE HOST STARTED THE LEVEL');
+    // Step 1: world generation is deterministic for every player.
+    if(mpConnected) showBanner('SHARED WORLD LOADED');
+
+    // Pointer lock must be requested from the player's own click when possible.
+    try{ canvas.requestPointerLock(); }catch(e){}
+  }
+
+  function mpConnect(mode,joinCode){
+    mpName=(document.getElementById('mpName')?.value||'Hunter').trim().slice(0,18)||'Hunter';
+    const room=(joinCode||document.getElementById('mpRoom')?.value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);
+
+    if(mode==='create'){
+      if(!room){ mpStatus('Could not create a room.'); return; }
+    }else if(!room){
+      mpStatus('Enter a room code.');
+      return;
+    }
+
+    if(mpSocket && mpSocket.readyState===WebSocket.OPEN) mpSocket.close();
+    mpRoomCode=room;
+    document.getElementById('mpRoom').value=room;
+    mpStatus('Connecting to multiplayer server...');
+
+    try{ mpSocket=new WebSocket(mpServerUrl()); }
+    catch(e){ mpStatus('Could not create the multiplayer connection.'); return; }
+
+    mpSocket.onopen=()=>{
+      mpConnected=true;
+      if(mode==='create'){
+        mpIsHost=true;
+        mpSend('createRoom',{name:mpName});
+      }else{
+        mpIsHost=false;
+        mpSend('joinRoom',{roomCode:room,name:mpName});
+      }
+      document.getElementById('mpDisconnect').style.display='inline-block';
+    };
+
+    mpSocket.onmessage=(ev)=>{
+      let m;
+      try{ m=JSON.parse(ev.data); }catch(e){ return; }
+
+      if(m.type==='connected'){
+        mpPlayerId=m.playerId||'';
+      }
+
+      if(m.type==='roomCreated'){
+        mpIsHost=true;
+        mpRoomCode=m.roomCode;
+        document.getElementById('mpRoomCode').textContent=m.roomCode;
+        document.getElementById('mpHudRoom').textContent=m.roomCode;
+        document.getElementById('mpRoomDisplay').style.display='block';
+        document.getElementById('mpHud').style.display='block';
+        mpStatus(`Room ${m.roomCode} created. Waiting for another player...`,true);
+        if(m.players) mpApplyPlayers(m.players);
+        mpRenderRoster();
+
+        // Host goes directly to the normal level-select/home screen.
+        // The level buttons remain locked until another player joins.
+        renderSelect('Waiting for another player to join...');
+        mpHostStarted=false;
+      }
+
+      if(m.type==='hostChanged'){
+        if(m.roundId!==undefined) mpRoundId=Number(m.roundId)||mpRoundId;
+        const becameHost=(m.hostId===mpPlayerId);
+        const wasHost=mpIsHost;
+        mpIsHost=becameHost;
+
+        // Host migration is a real authority handoff, not just a UI change.
+        // The server supplies the last authoritative snapshot from the old
+        // host so the promoted host can immediately take over the same world.
+        if(becameHost && !wasHost){
+          mpHostStarted = m.state!=='lobby';
+          mpLastWorldSend=0;
+          mpStatus('Host disconnected — you are now the host.',true);
+
+          if((phase==='raid' || phase==='holding' || phase==='paused') && m.worldSnapshot){
+            try{
+              if(m.worldLevel===undefined || Number(m.worldLevel)===Number(pendingVillageIdx)){
+                mpApplyWorldSnapshot(m.worldSnapshot);
+              }
+              if(m.allySnapshot) mpApplyAllySnapshot(m.allySnapshot);
+            }catch(err){}
+          }
+
+          // Immediately publish the recovered snapshot to every remaining
+          // client. This closes the handoff gap where everyone else could
+          // otherwise continue following the disconnected host.
+          if(m.worldSnapshot && (phase==='raid' || phase==='holding' || phase==='paused')){
+            mpSend('playerUpdate',{
+              data:{
+                worldSnapshot:m.worldSnapshot,
+                worldLevel:m.worldLevel,
+                allySnapshot:m.allySnapshot||null
+              }
+            });
+          }
+
+          if(phase==='select' && m.state==='selectingLevel'){
+            renderSelect('You are now the host. Choose the next level.');
+          }else if(phase==='shop'){
+            renderShop('You are now the host.');
+          }
+        }
+      }
+
+      if(m.type==='lobbyUpdate'){
+        if(m.roundId!==undefined) mpRoundId=Number(m.roundId)||mpRoundId;
+        if(m.players) mpApplyPlayers(m.players);
+        const count=(m.players||[]).length;
+
+        // A teammate leaving/disconnecting after the raid ended (but
+        // before depositing their gold) must not leave the host waiting
+        // on a deposit that will never arrive — recheck immediately
+        // against the now-smaller roster.
+        mpTryFinalizeRaidRewards();
+
+        // Make sure every player (host or not) sees the room code
+        // once they are actually in a room, not just the host.
+        document.getElementById('mpRoomCode').textContent=mpRoomCode;
+        document.getElementById('mpHudRoom').textContent=mpRoomCode;
+        document.getElementById('mpRoomDisplay').style.display='block';
+        document.getElementById('mpHud').style.display='block';
+
+        // If the previous host disconnected, the server promotes the
+        // next player in the room to host. Detect that here so this
+        // client's controls (START GAME, level picking) unlock too.
+        const me=(m.players||[]).find(p=>p.id===mpPlayerId);
+        const wasHost=mpIsHost;
+        if(me) mpIsHost=!!me.host;
+        if(mpIsHost && !wasHost){
+          mpStatus('The previous host disconnected — you are now the host.',true);
+          if(phase==='select'){
+            mpHostStarted = false;
+            renderSelect(count>=2
+              ? 'You are now the host. Click START GAME when ready.'
+              : 'You are now the host. Waiting for another player...');
+          } else if(phase==='shop'){
+            mpHostStarted = true;
+            renderShop('You are now the host.');
+          } else if(phase==='raid' || phase==='holding' || phase==='paused'){
+            mpHostStarted = true;
+          } else {
+            mpHostStarted = true;
+          }
+        }
+
+        if(mpIsHost){
+          document.getElementById('mpStart').style.display='none';
+          // Sync a freshly-joined guest (or one promoted mid-session)
+          // to the host's current gear right away, instead of leaving
+          // them on their own empty/default loadout until it next changes.
+          mpBroadcastHostLoadout();
+
+          if(phase==='select' && !mpHostStarted){
+            // renderSelect() itself adds the host-only START GAME button
+            // whenever mpPlayerCount>=2, so it reliably reappears even if
+            // the host had navigated to the shop or reloaded the screen.
+            renderSelect(
+              count>=2
+                ? `${count} players connected. Click START GAME when you are ready. (Up to 6 players)`
+                : 'Waiting for another player to join...'
+            );
+          }else{
+            mpStatus(
+            count>=2
+              ? `${count} players connected.`
+              : 'Waiting for another player...',
+            true
+          );
+          }
+        }else{
+          mpStatus(count>=2 ? 'Connected. Waiting for the host to start...' : 'Connected. Waiting for the host...',true);
+        }
+      }
+
+      if(m.type==='hostStarted'){
+        document.getElementById('mpStart').style.display='none';
+        if(m.hostId===mpPlayerId){
+          mpIsHost=true;
+          mpHostStarted=true;
+          mpStatus('You are the host. Choose a level.',true);
+          renderSelect('Choose Your Raid');
+        }else{
+          mpStatus('Host is choosing the level. Please wait...',true);
+          overlay.style.display='flex';
+          overlay.innerHTML='<div class="card"><h2>WAITING FOR HOST</h2><p>The host is choosing the level.</p><p>Stay connected — you will enter the same level automatically.</p></div>';
+          phase='select';
+        }
+      }
+
+      if(m.type==='gameStarted'){
+        mpRoundId=Number(m.roundId)||mpRoundId;
+        mpStartSelectedLevel(m.level,mpIsHost);
+      }
+
+      if(m.type==='playerUpdate'){
+        if(!mpMessageCurrent(m)) return;
+        const d=m.data||{};
+        if(m.playerId===mpPlayerId) return;
+        // Full loadout sync now happens explicitly and immediately via
+        // the 'hostLoadout' message below, fired the moment the host's
+        // gear actually changes — no need to also merge it in from
+        // every routine ~50-150ms position tick here.
+
+        if(d.worldSnapshot && !mpIsHost){
+          if(d.roundId!==undefined && Number(d.roundId)!==Number(mpRoundId)) return;
+          if(d.worldLevel === undefined ||
+             Number(d.worldLevel) === Number(pendingVillageIdx)){
+            mpApplyWorldSnapshot(d.worldSnapshot);
+            mpStatus('Shared world synchronized.',true);
+            if(d.allySnapshot) mpApplyAllySnapshot(d.allySnapshot);
+          }
+        }
+
+        if(d.players) mpApplyPlayers(d.players);
+        else if(!remotePlayers.has(m.playerId)) mpCreateRemote(m.playerId,d);
+        const r=remotePlayers.get(m.playerId);
+        if(r){
+          r.target.set(d.x||0,d.y||0,d.z||0);
+          r.yaw=d.yaw||0;
+          r.dead=!!d.dead;
+        }
+      }
+
+      // Another player reported landing a hit on a villager/guard.
+      // Only the host applies it — the host's copy is the one that
+      // gets broadcast back out in the next world snapshot.
+      if(m.type==='villagerHit'){
+        if(!mpMessageCurrent(m)) return;
+        if(mpIsHost) applyRemoteVillagerHit(m.index, Number(m.dmg)||0);
+      }
+
+      // A guest reached the wizard tower's top, or independently saw
+      // every villager fall (final-boss trigger), before the host's own
+      // array did. The host is the only one whose spawn actually counts
+      // for winning the raid, so spawn it here too — both functions are
+      // guarded against double-spawning, so this is safe to call even
+      // if the host was about to trigger it on its own the same moment.
+      if(m.type==='reachedBoss'){
+        if(!mpMessageCurrent(m)) return;
+        if(mpIsHost){
+          if(m.boss==='wizard') spawnWizardBoss();
+          else if(m.boss==='warlord') spawnFinalBoss();
+        }
+      }
+
+      // The host just authoritatively spawned a boss (from its own
+      // trigger, or relayed via 'reachedBoss' above). Every OTHER
+      // client needs its own local villagers array to gain the same
+      // entry at the same index too, or the host's future world-snapshot
+      // updates for that index get silently dropped by their client
+      // (mpApplyWorldSnapshot skips indices that don't exist locally).
+      if(m.type==='bossSpawned'){
+        if(!mpMessageCurrent(m)) return;
+        if(!mpIsHost){
+          if(m.boss==='wizard') spawnWizardBoss();
+          else if(m.boss==='warlord') spawnFinalBoss();
+        }
+      }
+
+      // The host is telling THIS specific client it took damage from
+      // a guard/villager attack. In a 3-4 player room the server
+      // broadcasts this to everyone in the room (like every other
+      // relayed message), so without checking targetId every OTHER
+      // guest would also take the hit meant for just one player.
+      if(m.type==='damagePlayer'){
+        if(!mpMessageCurrent(m)) return;
+        if(m.targetId===mpPlayerId) hurtPlayer(Number(m.amount)||0);
+      }
+
+      // Another player paused the shared raid. Freeze this screen too,
+      // so the game can't keep running for one player while the other
+      // is sitting on the pause menu.
+      if(m.type==='pauseGame'){
+        if(!mpMessageCurrent(m)) return;
+        if(phase==='raid' && !P.dead){
+          intentionalUnlock = true;
+          if(document.pointerLockElement===canvas){
+            try{ document.exitPointerLock(); }catch(err){}
+          }
+          isDrawing=false; drawTime=0;
+          phase='paused';
+          renderPaused();
+        }
+      }
+
+      // Another player resumed the shared raid. Unfreeze this screen.
+      // Pointer lock can only be (re)requested from a real user gesture
+      // on THIS browser, so rather than silently dropping back into a
+      // mouse-unlocked game (which looks frozen/broken), show a prompt
+      // whose click both satisfies that requirement and re-locks the
+      // pointer in one step.
+      if(m.type==='resumeGame'){
+        if(!mpMessageCurrent(m)) return;
+        if(phase==='paused'){
+          phase='raid';
+          renderResumePrompt();
+        }
+      }
+
+      if(m.type==='raidEnded'){
+        // The server advances roundId when the raid ends. The host must
+        // accept deposits using that NEW round id, otherwise its own
+        // mpMessageCurrent() check rejects every guest deposit and the
+        // host remains stuck in the completed raid forever.
+        if(m.roundId!==undefined){
+          mpRoundId=Number(m.roundId)||mpRoundId;
+        }
+        if(!mpIsHost && !mpRaidEnding){
+          mpSend('depositGold',{
+            amount:Math.max(0,Math.floor(gold)||0),
+            roundId:mpRoundId
+          });
+          mpFinishRaidLocally(
+            m.result||'dead',
+            m.message||'Raid ended. Waiting for the host...'
+          );
+        }
+      }
+
+      if(m.type==='depositGold'){
+        if(!mpMessageCurrent(m)) return;
+        if(mpIsHost){
+          const amount=Math.max(0,Math.floor(Number(m.amount))||0);
+          gold += amount;
+          mpDepositedIds.add(m.playerId);
+          mpTryFinalizeRaidRewards();
+        }
+      }
+
+      if(m.type==='raidRewardsReady'){
+        if(!mpMessageCurrent(m)) return;
+        if(!mpIsHost){
+          if(m.loadout) mpApplyHostLoadout(m.loadout);
+          mpFinishRaidLocally(
+            m.result||'win',
+            m.message||'Raid rewards received from the host.'
+          );
+        }
+      }
+
+      // On the final fortress there is no next level. The host's ending
+      // screen controls when the whole party returns to camp.
+      if(m.type==='finaleContinue'){
+        if(!mpMessageCurrent(m)) return;
+        if(!mpIsHost){
+          if(m.loadout) mpApplyHostLoadout(m.loadout);
+          if(Number.isFinite(Number(m.gold))) gold=Number(m.gold);
+          mpRaidEnding=false;
+          phase='shop';
+          renderShop(m.message||'The empire has fallen. You return home laden with the Warlord\'s hoard.');
+        }
+      }
+
+      // The host's gear/allies changed (bought/equipped something,
+      // recruited an ally, loaded a password) — mirror it immediately
+      // instead of waiting for the raid to end.
+      if(m.type==='hostLoadout'){
+        if(!mpMessageCurrent(m)) return;
+        if(!mpIsHost && m.loadout) mpApplyHostLoadoutSafe(m.loadout);
+      }
+
+      if(m.type==='error') mpStatus(m.message||'Multiplayer error.');
+    };
+
+    mpSocket.onerror=()=>{
+      mpConnected=false;
+      mpStatus('Connection failed.');
+    };
+
+    mpSocket.onclose=()=>{
+      mpConnected=false;
+      mpIsHost=false;
+      mpHostStarted=false;
+      mpRaidEnding=false;
+      mpPendingRaidResult=null;
+      mpDepositedIds.clear();
+      mpPendingHostLoadout=null;
+      mpRoundId=0;
+      document.getElementById('mpDisconnect').style.display='none';
+      mpStatus('Disconnected from multiplayer server.');
+      mpRenderRoster();
+
+      // A downed player has no buttons on the "DOWNED" screen at all —
+      // it just waits for a raidEnded/raidRewardsReady message from the
+      // host. If the connection drops while they're downed (or paused
+      // waiting on the host), that message can now never arrive and
+      // they'd be stuck there permanently with no way to leave. Fall
+      // them back to the shop instead, same as any other raid ending.
+      if(phase==='holding' || phase==='paused'){
+        mpFinishRaidLocally('dead','Lost connection to the multiplayer server.');
+      }
+    };
+  }
+
+  function mpDisconnect(){
+    if(mpSocket) mpSocket.close();
+    mpSocket=null;
+    mpConnected=false;
+    mpPlayerCount=1;
+    mpRoundId=0;
+    mpClearRemotes();
+    mpClearRemoteAllies();
+    document.getElementById('mpDisconnect').style.display='none';
+    document.getElementById('mpStart').style.display='none';
+    document.getElementById('mpHud').style.display='none';
+    document.getElementById('mpRoomDisplay').style.display='none';
+    mpStatus('Disconnected from multiplayer server.');
+    mpRenderRoster();
+  }
+
+  function mpUpdate(dt){
+    remotePlayers.forEach(r=>{
+      r.group.position.lerp(r.target,Math.min(1,dt*12));
+      r.group.rotation.y += (r.yaw-r.group.rotation.y)*Math.min(1,dt*12);
+      r.group.visible = !r.dead;
+    });
+
+    // A host loadout update arrived mid-bow-draw and was deferred (see
+    // mpApplyHostLoadoutSafe) — apply it now that the draw has ended.
+    if(mpPendingHostLoadout && !isDrawing){
+      const pending = mpPendingHostLoadout;
+      mpPendingHostLoadout = null;
+      mpApplyHostLoadout(pending);
+    }
+
+    // Player 2 smoothly follows the host's villager positions.
+    if(phase==='raid' || phase==='holding' || phase==='paused') mpUpdateRemoteVillagers(dt);
+
+    // Guests: smoothly follow the host's ally positions and hide any
+    // that have fallen, mirroring how remotePlayers is animated above.
+    if(!mpIsHost){
+      remoteAllies.forEach(r=>{
+        r.mesh.position.lerp(r.target,Math.min(1,dt*12));
+        r.mesh.rotation.y += (r.yaw-r.mesh.rotation.y)*Math.min(1,dt*12);
+        r.mesh.visible = !r.dead;
+      });
+    }
+
+    if(mpConnected && (phase==='raid' || phase==='holding') && performance.now()-mpLastSend>50){
+      mpLastSend=performance.now();
+      const data={
+        x:player.position.x,
+        y:player.position.y,
+        z:player.position.z,
+        yaw:yaw,
+        health:P.health,
+        name:mpName,
+        dead:!!P.dead,
+        loadout:mpGetLoadout()
+      };
+
+      // Step 2: host is authoritative for villager movement.
+      // Send at 10 updates/sec to keep bandwidth reasonable.
+      if(mpIsHost && performance.now()-mpLastWorldSend>100){
+        mpLastWorldSend=performance.now();
+        data.worldSnapshot=mpMakeWorldSnapshot();
+        data.worldLevel=pendingVillageIdx;
+        data.roundId=mpRoundId;
+        data.allySnapshot=mpMakeAllySnapshot();
+      }
+
+      mpSend('playerUpdate',{data});
+    }
+  }
+
+  // ================= MULTIPLAYER COMBAT SYNC =================
+  // The host runs the only authoritative copy of villagers/guards.
+  // These helpers let the host's AI see and target EVERY connected
+  // player (not just itself), and let non-host clients report the
+  // hits they land so the host's copy — the one that actually gets
+  // broadcast to everyone — reflects the kill instead of reverting it.
+
+  // Position of any player (self or remote) by their network id.
+  function mpPlayerPosById(id){
+    if(!id || id===mpPlayerId) return player.position;
+    const r = remotePlayers.get(id);
+    return r ? r.group.position : player.position;
+  }
+
+  // Finds whichever connected player is closest to a world position.
+  // Falls back to the local player alone in single-player / non-host.
+  function nearestPlayerTo(pos){
+    let bestId = mpPlayerId, bestPos = player.position, bestDist = pos.distanceTo(player.position);
+    if(mpConnected && mpIsHost){
+      remotePlayers.forEach((r,id)=>{
+        if(r.dead) return;
+        const d = pos.distanceTo(r.group.position);
+        if(d < bestDist){ bestDist = d; bestId = id; bestPos = r.group.position; }
+      });
+    }
+    return {id:bestId, pos:bestPos, dist:bestDist};
+  }
+
+  function mpAllPlayersDead(){
+    if(!mpConnected || !P.dead) return false;
+    let aliveRemote=false;
+    remotePlayers.forEach(r=>{ if(!r.dead) aliveRemote=true; });
+    return !aliveRemote;
+  }
+
+  function enterHoldingZone(){
+    P.dead=true;
+    intentionalUnlock=true;
+    isDrawing=false; drawTime=0;
+    if(document.pointerLockElement===canvas){
+      try{ document.exitPointerLock(); }catch(e){}
+    }
+    phase='holding';
+    document.getElementById('hud').style.display='none';
+    overlay.style.background='';
+    overlay.innerHTML=`
+      <h1 style="font-size:32px">DOWNED</h1>
+      <div class="sub">You have fallen.</div>
+      <div class="controls" style="max-width:520px;">
+        The raid is still active. Your teammates can finish the hunt.<br>
+        You will return to camp when the shared raid ends.
+      </div>`;
+    overlay.style.display='flex';
+  }
+
+  function mpFinishRaidLocally(result,message){
+    // Finalize a multiplayer raid only once. Late duplicate packets must
+    // never reopen the shop/finale or corrupt the next round.
+    if(mpRaidEnding && (phase==='shop' || phase==='select')) return;
+    mpRaidEnding=true;
+    intentionalUnlock=true;
+    try{ document.exitPointerLock(); }catch(e){}
+    isDrawing=false; drawTime=0; stringGroup.position.z=0;
+    document.getElementById('drawBar').style.display='none';
+    // In multiplayer, non-host players return to the shared lobby after a raid.
+    // Only the host controls selection of the next level.
+    if(mpConnected && !mpIsHost){
+      if(result==='win') villagesCleared[pendingVillageIdx]=true;
+
+      // The final fortress has no next level. Guests wait for the host's
+      // Return to Camp click instead of being stranded in the normal
+      // next-level lobby forever.
+      if(result==='win' && currentCfg && currentCfg.isFinalFortress){
+        phase='select';
+        overlay.style.background='';
+        overlay.style.display='flex';
+        overlay.innerHTML=`<div class="card" style="max-width:620px">
+          <h1>FORTRESS DEFEATED</h1>
+          <div class="sub">Waiting for the host</div>
+          <div class="controls">The Warlord has fallen.<br><br>
+            The host is viewing the ending. Stay connected — you will return to camp when the host clicks <b>Return to Camp</b>.
+          </div>
+        </div>`;
+        document.getElementById('hud').style.display='none';
+        document.getElementById('mpHud').style.display='block';
+        document.getElementById('mpRoomDisplay').style.display='block';
+        return;
+      }
+
+      phase='select';
+      overlay.style.background='';
+      overlay.style.display='flex';
+      overlay.innerHTML=`<div class="card" style="max-width:620px">
+        <h1>LEVEL COMPLETE</h1>
+        <div class="sub">Waiting for the host</div>
+        <div class="controls">${message||'The raid has ended.'}<br><br>
+          You are back in the multiplayer lobby. Stay connected while the host chooses the next level.
+        </div>
+      </div>`;
+      document.getElementById('hud').style.display='none';
+      document.getElementById('mpHud').style.display='block';
+      document.getElementById('mpRoomDisplay').style.display='block';
+      return;
+    }
+    if(result==='win' && currentCfg && currentCfg.isFinalFortress){
+      villagesCleared[pendingVillageIdx]=true;
+      renderFinale();
+      return;
+    }
+    if(result==='win') villagesCleared[pendingVillageIdx]=true;
+    phase='shop';
+    renderShop(message||'Raid ended.');
+  }
+
+  // Host-only: called both when a player's gold deposit comes in AND
+  // whenever the room roster shrinks (a player disconnects/leaves).
+  // Without the second trigger, a host who finishes a raid while a
+  // teammate has already dropped out was stuck forever: mpDepositedIds
+  // could never reach the old mpPlayerCount, so mpFinishRaidLocally()
+  // for the HOST never ran and the host's screen never left the raid —
+  // there was no way to leave the game once the level was complete.
+  function mpTryFinalizeRaidRewards(){
+    if(!mpIsHost || !mpPendingRaidResult) return;
+    if(mpDepositedIds.size < mpPlayerCount) return;
+    const result=mpPendingRaidResult;
+    mpPendingRaidResult=null;
+    mpSend('raidRewardsReady',{
+      result,
+      message: result==='win'
+        ? `${currentCfg?.name||'Raid'} cleared!`
+        : 'The hunting party has fallen.',
+      gold,
+      loadout:mpGetLoadout()
+    });
+    mpFinishRaidLocally(result,result==='win'
+      ? `${currentCfg?.name||'Raid'} cleared!`
+      : 'The hunting party has fallen.');
+  }
+
+  function mpHostFinishRaid(result){
+    if(!mpConnected || !mpIsHost || mpRaidEnding) return;
+    mpRaidEnding=true;
+    mpPendingRaidResult=result;
+    mpDepositedIds.clear();
+    mpDepositedIds.add(mpPlayerId);
+    // The server increments its authoritative roundId when processing
+    // raidEnded. Predict that next id locally so guest deposits arriving
+    // immediately afterward pass the current-round check. The server also
+    // sends the authoritative value back in raidEnded, which corrects this
+    // automatically if the client was ever out of sync.
+    mpRoundId = Number(mpRoundId||0) + 1;
+    mpSend('raidEnded',{
+      result,
+      message:result==='win'
+        ? `${currentCfg?.name||'Raid'} cleared!`
+        : `The hunting party has fallen.`
+    });
+    if(mpPlayerCount<=1){
+      mpPendingRaidResult=null;
+      mpFinishRaidLocally(result,result==='win'
+        ? `${currentCfg?.name||'Raid'} cleared!`
+        : `You were overwhelmed at ${currentCfg?.name||'the raid'}.`);
+    }
+  }
+
+  // Host calls this to hurt a specific player. If it's the host's own
+  // player, apply damage locally; otherwise relay it over the network
+  // so that player's own client (which owns their health) applies it.
+  function mpDamagePlayer(targetId, dmg){
+    if(!targetId || targetId===mpPlayerId){ hurtPlayer(dmg); return; }
+    mpSend('damagePlayer',{targetId, amount:dmg});
+  }
+
+  // Non-host clients call this after their own local hit-detection
+  // lands a blow, so the host's authoritative villager record updates
+  // and the kill sticks instead of being reverted by the next
+  // world snapshot.
+  function mpReportVillagerHit(index, dmg){
+    if(!mpConnected || mpIsHost) return;
+    mpSend('villagerHit',{index, dmg});
+  }
+
+  // Host-side: apply a hit reported by another player to the real
+  // (authoritative) villager record. No kill credit/gold here — the
+  // attacking player's own client already awarded itself that locally.
+  function applyRemoteVillagerHit(index, dmg){
+    let v = villagers[index];
+    // Self-healing fallback: a guest's hit on a boss can theoretically
+    // still arrive before the 'reachedBoss'/'bossSpawned' handshake
+    // above finishes (network reordering, lag spikes). Rather than
+    // silently dropping a hit on an index that doesn't exist yet,
+    // spawn the boss now if this index is exactly the next slot a
+    // boss would occupy — guarding on index===villagers.length keeps
+    // this from ever mis-firing on an unrelated out-of-range index.
+    if(!v && index===villagers.length){
+      if(currentCfg && currentCfg.hasWizardTower && !wizardSpawned) spawnWizardBoss();
+      else if(currentCfg && currentCfg.hasFinalBoss && !finalBossSpawned) spawnFinalBoss();
+      v = villagers[index];
+    }
+    if(!v || v.dead) return;
+    v.hp -= dmg;
+    if(v.hp<=0){
+      v.dead = true;
+      v.state = 'dead';
+    }else if(!v.isGuard){
+      v.state = 'flee';
+      v.calmTimer = 0;
+    }else{
+      v.state = 'attack';
+    }
+  }
+
+  const MELEE_RANGE = 2.3;
+  const GUARD_TYPES = {
+    sentry:    { label:'Guard',       hpMult:1.00, dmgMult:1.00, speedMult:1.00, range:MELEE_RANGE, ranged:false, atkCooldown:1.3, alertRadius:9  },
+    spear:     { label:'Spearman',    hpMult:1.05, dmgMult:1.15, speedMult:0.95, range:3.0,         ranged:false, atkCooldown:1.1, alertRadius:9  },
+    archer:    { label:'Archer',      hpMult:0.75, dmgMult:0.85, speedMult:1.05, range:16,          ranged:true,  atkCooldown:1.7, alertRadius:15 },
+    berserker: { label:'Berserker',   hpMult:1.65, dmgMult:1.40, speedMult:1.15, range:2.6,         ranged:false, atkCooldown:1.6, alertRadius:9  },
+    wallguard: { label:'Wall Archer', hpMult:0.90, dmgMult:1.10, speedMult:0,    range:55,          ranged:true,  atkCooldown:1.6, alertRadius:55 },
+    warlord:   { label:'Warlord',     hpMult:2.40, dmgMult:1.60, speedMult:1.05, range:2.8,         ranged:false, atkCooldown:1.5, alertRadius:10 },
+  };
+
+  // wizard tower — climbed by walking in a spiral around the core pillar
+  const TOWER_CORE_R = 3.2, TOWER_RAMP_W = 2.6, TOWER_OUTER_R = 5.8, TOWER_PLATFORM_R = 6.4;
+  const TOWER_TURNS = 5, TOWER_HEIGHT = 30;
+  const TOWER_HEIGHT_PER_TURN = TOWER_HEIGHT/TOWER_TURNS;
+  const WIZARD_HP = 230, WIZARD_DMG = [24,36];
+  const climb = { active:false, angle:0, lastRaw:0 };
+  let wizardSpawned = false;
+
+  // ================= FINAL BOSS / CASTLE STATE =================
+  const WARLORD_BOSS_HP = 900, WARLORD_BOSS_DMG = [30,46];
+  let finalBossSpawned = false;
+  let gateSealed = false;
+  let portcullisMesh = null;
+  let portcullisSealing = false;
+
+  const FINAL_GUARD_MIX = [
+    ...Array(40).fill('sentry'),
+    ...Array(15).fill('spear'),
+    ...Array(15).fill('berserker'),
+    ...Array(10).fill('archer'),
+  ];
+  const VILLAGES = [
+    { name:'Oakvale Hollow', difficulty:'Easy', hutCount:9, villagerCount:10, guardCount:4,
+      guardHp:170, guardDmg:[7,12], guardSpeed:5.2, radius:34, fog:0x161009, ambient:0x394a5c, sun:0xffb066,
+      guardMix:['sentry','sentry','sentry','spear'], hasWalls:false,
+      desc:'A sleepy farming hamlet, lightly guarded.' },
+    { name:'Thornwick Fen', difficulty:'Easy', hutCount:10, villagerCount:11, guardCount:5,
+      guardHp:182, guardDmg:[8,13], guardSpeed:5.3, radius:36, fog:0x141a12, ambient:0x3a4a3e, sun:0xb8cf8a,
+      guardMix:['sentry','sentry','sentry','spear','archer'], hasWalls:false,
+      desc:'A misty marshland hamlet built on stilts. A little more watchful than most.' },
+    { name:'Stonemire Reach', difficulty:'Medium', hutCount:12, villagerCount:14, guardCount:7,
+      guardHp:210, guardDmg:[10,17], guardSpeed:5.8, radius:44, fog:0x12141a, ambient:0x40465c, sun:0xb9c4ff,
+      guardMix:['sentry','sentry','sentry','spear','spear','archer','archer'], hasWalls:false,
+      desc:'A trading post under grey skies. Guards patrol in numbers.' },
+    { name:'Ashford Crossing', difficulty:'Medium', hutCount:13, villagerCount:15, guardCount:8,
+      guardHp:222, guardDmg:[11,18], guardSpeed:5.9, radius:46, fog:0x14121a, ambient:0x424560, sun:0xc9b9ff,
+      guardMix:['sentry','sentry','sentry','spear','spear','archer','archer','berserker'], hasWalls:false,
+      desc:'A river-ford settlement. Its guards have started carrying heavier steel.' },
+    { name:'Wyrmwood Hollow', difficulty:'Medium', hutCount:13, villagerCount:16, guardCount:9,
+      guardHp:232, guardDmg:[12,19], guardSpeed:6.0, radius:47, fog:0x0f1a12, ambient:0x2e4a38, sun:0x8adf9c,
+      guardMix:['sentry','sentry','spear','spear','spear','archer','archer','berserker','sentry'], hasWalls:false,
+      desc:'A village hidden among twisted roots. Berserkers roam its narrow paths.' },
+    { name:'Blackthorn Keep', difficulty:'Hard', hutCount:14, villagerCount:17, guardCount:10,
+      guardHp:260, guardDmg:[14,22], guardSpeed:6.2, radius:52, fog:0x1a0b0b, ambient:0x3a2a30, sun:0xff8a5c,
+      guardMix:['sentry','sentry','spear','spear','spear','archer','archer','berserker','berserker','sentry'],
+      hasWalls:true, wallRadius:44, wallHeight:5.5, wallGuardCount:4, gateAngles:[Math.PI/2,-Math.PI/2], gateHalfWidth:0.22,
+      desc:'A stone-walled keep. Archers watch from the ramparts — only a bow reaches them.' },
+    { name:'Duskmoor Hold', difficulty:'Hard', hutCount:15, villagerCount:18, guardCount:11,
+      guardHp:276, guardDmg:[15,24], guardSpeed:6.3, radius:54, fog:0x180a10, ambient:0x3a2438, sun:0xd66aa0,
+      guardMix:['sentry','sentry','spear','spear','spear','archer','archer','archer','berserker','berserker','sentry'],
+      hasWalls:true, wallRadius:46, wallHeight:5.7, wallGuardCount:5, gateAngles:[Math.PI/2,-Math.PI/2], gateHalfWidth:0.22,
+      desc:'A walled hold at dusk. Its garrison is thick with archers and berserkers alike.' },
+    { name:'Grimwatch Fortress', difficulty:'Brutal', hutCount:16, villagerCount:20, guardCount:14,
+      guardHp:305, guardDmg:[17,27], guardSpeed:6.6, radius:60, fog:0x120808, ambient:0x2a1a1a, sun:0xff5533,
+      guardMix:['sentry','sentry','spear','spear','spear','spear','archer','archer','archer','berserker','berserker','berserker','sentry','spear'],
+      hasWalls:true, wallRadius:51, wallHeight:6, wallGuardCount:6, gateAngles:[Math.PI/2,-Math.PI/2], gateHalfWidth:0.22,
+      hasWizardTower:true,
+      desc:'A brutal fortress-town. A wizard watches from the tower at its heart — climb the spiral to reach him.' },
+    { name:'Ravenscar Citadel', difficulty:'Nightmare', isFinalFortress:true, noHuts:true,
+      hutCount:0, villagerCount:0, guardCount:FINAL_GUARD_MIX.length,
+      guardHp:330, guardDmg:[18,29], guardSpeed:6.4, radius:78, fog:0x090509, ambient:0x1c1020, sun:0x9c3050,
+      guardMix:FINAL_GUARD_MIX, hasWalls:true, hasMoat:true, moatWidth:7, oneWayGate:true,
+      wallRadius:62, wallHeight:8, wallGuardCount:0, gateAngles:[Math.PI/2], gateHalfWidth:0.16,
+      hasFinalBoss:true,
+      desc:"No village — only a warlord's fortress. A moat rings its walls and a single gate that seals shut behind you. Nothing lives inside but its garrison, and the Warlord himself." },
+  ];
+  const villagesCleared = VILLAGES.map(()=>false);
+
+  const WEAPONS = [
+    { id:'rusty', name:'Rusty Hand-Axe', type:'melee', cost:0, dmg:[34,52], range:3.4, cooldown:.55, arc:50, bladeColor:0x9a8f7c, glow:0 },
+    { id:'iron', name:'Iron Battle-Axe', type:'melee', cost:90, dmg:[46,66], range:3.6, cooldown:.50, arc:52, bladeColor:0xb9bec4, glow:0 },
+    { id:'war', name:'War Cleaver', type:'melee', cost:200, dmg:[60,85], range:3.9, cooldown:.46, arc:55, bladeColor:0x8fa8c9, glow:0.15 },
+    { id:'berserker', name:"Berserker's Fury", type:'melee', cost:340, dmg:[78,110], range:4.1, cooldown:.40, arc:58, bladeColor:0xc73e3e, glow:0.6 },
+    { id:'shortbow', name:"Hunter's Shortbow", type:'bow', cost:220, dmg:[20,60], range:40, drawTime:0.85, cooldown:.40, arc:4.0, limbColor:0x5a3f24, glow:0 },
+    { id:'longbow', name:'Warbow of Ash', type:'bow', cost:420, dmg:[32,98], range:55, drawTime:1.05, cooldown:.35, arc:3.5, limbColor:0x3a2a55, glow:0.25 },
+  ];
+  const ownedWeapons = new Set(['rusty']);
+  let equippedWeaponId = 'rusty';
+  let equippedBowId = null;
+
+  const ARMORS = [
+    { id:'leather', name:'Leather Vest', cost:150, armorHp:40, color:0x5a3f24 },
+    { id:'chain', name:'Chainmail Hauberk', cost:320, armorHp:80, color:0x9aa3ab },
+    { id:'plate', name:'Iron Plate Armor', cost:550, armorHp:130, color:0xc9ced3 },
+  ];
+  const ownedArmor = new Set();
+  let equippedArmorId = null;
+  let currentArmor = null;
+
+  const BOATS = [
+    { id:'longship', name:'Raiding Longship', cost:280, capBonus:2 },
+    { id:'warship', name:'Ironclad Warship', cost:560, capBonus:2 },
+  ];
+  const ownedBoats = new Set();
+  function getMaxAllyCap(){ let c=4; ownedBoats.forEach(id=>{ c += BOATS.find(b=>b.id===id).capBonus; }); return c; }
+  function allyRecruitCost(n){ return 110 + n*140; }
+
+  let recruitedAllies = 0;
+  let gold = 0;
+  let pendingVillageIdx = 0;
+
+  // ================= THREE SETUP =================
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x161009);
+  scene.fog = new THREE.Fog(0x161009, 25, 170);
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 550);
+  const EYE_HEIGHT = 1.7;
+  const player = new THREE.Object3D();
+  player.add(camera);
+  camera.position.set(0, EYE_HEIGHT, 0);
+  scene.add(player);
+
+  window.addEventListener('resize', ()=>{
+    camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  const ambientLight = new THREE.AmbientLight(0x394a5c, 0.55);
+  scene.add(ambientLight);
+  const sun = new THREE.DirectionalLight(0xffb066, 0.9);
+  sun.position.set(-40, 50, -20);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024,1024);
+  sun.shadow.camera.left=-90; sun.shadow.camera.right=90; sun.shadow.camera.top=90; sun.shadow.camera.bottom=-90;
+  scene.add(sun);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500,500), new THREE.MeshStandardMaterial({ color: 0x445536, roughness:1 }));
+  ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
+  scene.add(ground);
+
+  let WORLD_BOUND = 60;
+
+  const bonfireGroup = new THREE.Group();
+  const logs = new THREE.Mesh(new THREE.CylinderGeometry(0.9,1.1,0.5,8), new THREE.MeshStandardMaterial({color:0x2c1c10}));
+  logs.position.y = 0.25; logs.castShadow = true;
+  bonfireGroup.add(logs);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.6,1.6,8), new THREE.MeshStandardMaterial({color:0xff7a1f, emissive:0xff5500, emissiveIntensity:1.2, transparent:true, opacity:.9}));
+  flame.position.y = 1.1;
+  bonfireGroup.add(flame);
+  const fireLight = new THREE.PointLight(0xff8844, 2.2, 22, 2);
+  fireLight.position.y = 1.4;
+  bonfireGroup.add(fireLight);
+  scene.add(bonfireGroup);
+
+  // ================= AXE =================
+  const axe = new THREE.Group();
+  const HANDLE_LEN = 0.85;
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(.032,.04,HANDLE_LEN,8), new THREE.MeshStandardMaterial({color:0x3b2718, roughness:.8}));
+  handle.rotation.x = Math.PI/2; handle.position.z = -HANDLE_LEN/2;
+  axe.add(handle);
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.16,8), new THREE.MeshStandardMaterial({color:0x1c130c, roughness:.9}));
+  grip.rotation.x = Math.PI/2; grip.position.z = -0.1;
+  axe.add(grip);
+  const headGroup = new THREE.Group();
+  headGroup.position.z = -HANDLE_LEN + 0.06;
+  const bladeMat = new THREE.MeshStandardMaterial({color:0x9a8f7c, metalness:.75, roughness:.28, emissive:0x000000, emissiveIntensity:0});
+  const blade = new THREE.Mesh(new THREE.ConeGeometry(.22,.34,4,1), bladeMat);
+  blade.rotation.z = Math.PI/2; blade.rotation.y = Math.PI/4; blade.scale.set(1,1,.35);
+  blade.position.set(.13,.02,0);
+  headGroup.add(blade);
+  const spike = new THREE.Mesh(new THREE.ConeGeometry(.05,.16,6), new THREE.MeshStandardMaterial({color:0x8a8f94, metalness:.6, roughness:.4}));
+  spike.rotation.z = -Math.PI/2; spike.position.set(-.09,.02,0);
+  headGroup.add(spike);
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,.1,8), new THREE.MeshStandardMaterial({color:0x555a5e, metalness:.7, roughness:.3}));
+  collar.rotation.x = Math.PI/2;
+  headGroup.add(collar);
+  axe.add(headGroup);
+  const AXE_REST = { x: 0.32, y: -0.42, z: 0.55 };
+  axe.position.set(0.32, -0.38, -0.48);
+  axe.rotation.set(AXE_REST.x, AXE_REST.y, AXE_REST.z);
+  camera.add(axe);
+  function applyAxeVisual(w){
+    bladeMat.color.setHex(w.bladeColor);
+    bladeMat.emissive.setHex(w.glow>0 ? w.bladeColor : 0x000000);
+    bladeMat.emissiveIntensity = w.glow;
+  }
+
+  // ================= BOW =================
+  const bowGroup = new THREE.Group();
+  const limbMat = new THREE.MeshStandardMaterial({color:0x5a3f24, roughness:.75, emissive:0x000000, emissiveIntensity:0});
+  const gripMesh = new THREE.Mesh(new THREE.CylinderGeometry(.028,.032,.3,7), new THREE.MeshStandardMaterial({color:0x2e2013}));
+  bowGroup.add(gripMesh);
+  const limbUpper = new THREE.Mesh(new THREE.CylinderGeometry(.02,.03,.55,7), limbMat);
+  limbUpper.position.set(0,.42,0); limbUpper.rotation.x = 0.35;
+  bowGroup.add(limbUpper);
+  const limbLower = new THREE.Mesh(new THREE.CylinderGeometry(.02,.03,.55,7), limbMat);
+  limbLower.position.set(0,-.42,0); limbLower.rotation.x = -0.35;
+  bowGroup.add(limbLower);
+  const stringGroup = new THREE.Group();
+  bowGroup.add(stringGroup);
+  const bowString = new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,1.357,4), new THREE.MeshBasicMaterial({color:0xe8dcc8}));
+  bowString.position.set(0,0,.0943);
+  stringGroup.add(bowString);
+  const arrowNocked = new THREE.Group();
+  const arrowShaft = new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.55,5), new THREE.MeshStandardMaterial({color:0x6b4a2f}));
+  arrowShaft.rotation.x = Math.PI/2;
+  arrowNocked.add(arrowShaft);
+  const arrowTip = new THREE.Mesh(new THREE.ConeGeometry(.03,.11,5), new THREE.MeshStandardMaterial({color:0x8a8f94, metalness:.6}));
+  arrowTip.rotation.x = -Math.PI/2; arrowTip.position.z = -0.33;
+  arrowNocked.add(arrowTip);
+  arrowNocked.position.set(0,0,.0943);
+  stringGroup.add(arrowNocked);
+  bowGroup.position.set(-0.30, -0.34, -0.52);
+  bowGroup.rotation.y = 0.12;
+  bowGroup.visible = false;
+  camera.add(bowGroup);
+  function applyBowVisual(w){
+    limbMat.color.setHex(w.limbColor);
+    limbMat.emissive.setHex(w.glow>0 ? w.limbColor : 0x000000);
+    limbMat.emissiveIntensity = w.glow;
+  }
+
+  // ================= WORLD OBJECT POOLS =================
+  const obstacles = [];
+  const envMeshes = [];
+  const villagers = [];
+  const allies = [];
+  const goldPickups = [];
+  const particles = [];
+  const projectiles = [];
+
+  function disposeMesh(root){
+    root.traverse(obj=>{
+      if(obj.geometry) obj.geometry.dispose();
+      if(obj.material){ if(Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose()); }
+    });
+  }
+
+  function makeHut(){
+    const g = new THREE.Group();
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(4.2,2.6,4.2), new THREE.MeshStandardMaterial({color:0x5c4433, roughness:.9}));
+    wall.position.y = 1.3; wall.castShadow = true; wall.receiveShadow = true;
+    g.add(wall);
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(3.4,2.1,4), new THREE.MeshStandardMaterial({color:0x6b1f1f, roughness:.85}));
+    roof.position.y = 2.6 + 1.05; roof.rotation.y = Math.PI/4; roof.castShadow = true;
+    g.add(roof);
+    return g;
+  }
+  function makeTree(){
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,2.4,6), new THREE.MeshStandardMaterial({color:0x3c2b1c}));
+    trunk.position.y = 1.2; trunk.castShadow = true;
+    g.add(trunk);
+    for(let k=0;k<2;k++){
+      const foliage = new THREE.Mesh(new THREE.ConeGeometry(1.6-k*.4, 2.2, 7), new THREE.MeshStandardMaterial({color:0x2f4526}));
+      foliage.position.y = 2.6 + k*1.5; foliage.castShadow = true;
+      g.add(foliage);
+    }
+    return g;
+  }
+  function makeVillagerCiv(){
+    const g = new THREE.Group();
+    const tunicColors = [0x7a6a4f,0x4f6a4f,0x6a4f4f,0x5a5a70];
+    const bodyMat = new THREE.MeshStandardMaterial({color: tunicColors[Math.floor(Math.random()*tunicColors.length)]});
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.62,1.05,.4), bodyMat);
+    body.position.y = 1.0; body.castShadow = true;
+    g.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.42), new THREE.MeshStandardMaterial({color:0xd9b38c}));
+    head.position.y = 1.75; head.castShadow = true;
+    g.add(head);
+    const armMat = new THREE.MeshStandardMaterial({color:0xd9b38c});
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16), armMat);
+    armL.position.set(-.42,1.0,0); g.add(armL);
+    const armR = armL.clone(); armR.position.x = .42; g.add(armR);
+    const legMat = new THREE.MeshStandardMaterial({color:0x2e2418});
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(.2,.7,.2), legMat);
+    legL.position.set(-.16,.35,0); g.add(legL);
+    const legR = legL.clone(); legR.position.x = .16; g.add(legR);
+    return g;
+  }
+  function makeGuard(type){
+    const g = new THREE.Group();
+    const palette = {
+      sentry:{ body:0x4a4a4a, cape:0x7a1f1f, helm:0x777d82 },
+      spear:{ body:0x5a2020, cape:0x2a1414, helm:0x8a7d5a },
+      archer:{ body:0x3a5a3a, cape:null, helm:0x2e4a2e },
+      berserker:{ body:0x2a1a33, cape:0x1a0e1a, helm:0x3a2244 },
+      wallguard:{ body:0x555a5c, cape:0x33383a, helm:0x8a8f94 },
+      warlord:{ body:0x1a0808, cape:0x3a0f0f, helm:0x2a1010 },
+    }[type];
+    const bodyMat = new THREE.MeshStandardMaterial({color:palette.body});
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.62,1.05,.4), bodyMat);
+    body.position.y = 1.0; body.castShadow = true;
+    g.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.42,.42,.42), new THREE.MeshStandardMaterial({color:0xd9b38c}));
+    head.position.y = 1.75; head.castShadow = true;
+    g.add(head);
+    const helm = new THREE.Mesh(new THREE.BoxGeometry(.46,.16,.46), new THREE.MeshStandardMaterial({color:palette.helm, metalness:.5,roughness:.5}));
+    helm.position.y = 1.98; g.add(helm);
+    if(palette.cape){
+      const cape = new THREE.Mesh(new THREE.BoxGeometry(.5,.9,.08), new THREE.MeshStandardMaterial({color:palette.cape}));
+      cape.position.set(0,1.0,.24); g.add(cape);
+    }
+    const armMat = new THREE.MeshStandardMaterial({color:0xd9b38c});
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(.16,.7,.16), armMat);
+    armL.position.set(-.42,1.0,0); g.add(armL);
+    const armR = armL.clone(); armR.position.x = .42; g.add(armR);
+    const legMat = new THREE.MeshStandardMaterial({color:0x2e2418});
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(.2,.7,.2), legMat);
+    legL.position.set(-.16,.35,0); g.add(legL);
+    const legR = legL.clone(); legR.position.x = .16; g.add(legR);
+
+    if(type==='spear'){
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,1.3,5), new THREE.MeshStandardMaterial({color:0x4a3320}));
+      shaft.rotation.z = Math.PI/2.3; shaft.position.set(.55,1.1,0);
+      g.add(shaft);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.06,.2,5), new THREE.MeshStandardMaterial({color:0xb9bec4, metalness:.6}));
+      tip.rotation.z = Math.PI/2.3; tip.position.set(1.1,1.42,0);
+      g.add(tip);
+    } else if(type==='archer' || type==='wallguard'){
+      const bowArc = new THREE.Mesh(new THREE.TorusGeometry(.32,.02,6,10,Math.PI*1.2), new THREE.MeshStandardMaterial({color:0x4a331f}));
+      bowArc.rotation.y = Math.PI/2; bowArc.position.set(-.05,1.0,-.3);
+      g.add(bowArc);
+    } else if(type==='berserker'){
+      g.scale.set(1.18,1.18,1.18);
+      [-1,1].forEach(s=>{
+        const sp = new THREE.Mesh(new THREE.ConeGeometry(.08,.22,5), new THREE.MeshStandardMaterial({color:0x8a8f94, metalness:.6}));
+        sp.position.set(.36*s,1.42,0); sp.rotation.z = -0.3*s;
+        g.add(sp);
+      });
+      const bigBlade = new THREE.Mesh(new THREE.BoxGeometry(.06,.5,.32), new THREE.MeshStandardMaterial({color:0x9a8f7c, metalness:.6}));
+      bigBlade.position.set(.5,1.3,0);
+      g.add(bigBlade);
+    } else if(type==='warlord'){
+      g.scale.set(1.4,1.4,1.4);
+      [-1,1].forEach(s=>{
+        const sp = new THREE.Mesh(new THREE.ConeGeometry(.09,.26,5), new THREE.MeshStandardMaterial({color:0xb08a3a, metalness:.65}));
+        sp.position.set(.38*s,1.44,0); sp.rotation.z = -0.32*s;
+        g.add(sp);
+      });
+      const crown = new THREE.Mesh(new THREE.ConeGeometry(.1,.22,4), new THREE.MeshStandardMaterial({color:0xb08a3a, metalness:.7}));
+      crown.position.set(0,2.16,0);
+      g.add(crown);
+      const bigBlade = new THREE.Mesh(new THREE.BoxGeometry(.08,.65,.4), new THREE.MeshStandardMaterial({color:0x7a1f1f, metalness:.5}));
+      bigBlade.position.set(.55,1.35,0);
+      g.add(bigBlade);
+    }
+    return g;
+  }
+  function makeBarbarian(){
+    const g = new THREE.Group();
+    const bodyMat = new THREE.MeshStandardMaterial({color:0x6b4a2f});
+    const body = new THREE.Mesh(new THREE.BoxGeometry(.7,1.15,.46), bodyMat);
+    body.position.y = 1.02; body.castShadow = true;
+    g.add(body);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(.44,.44,.44), new THREE.MeshStandardMaterial({color:0xcf9a78}));
+    head.position.y = 1.82; head.castShadow = true;
+    g.add(head);
+    const hornMat = new THREE.MeshStandardMaterial({color:0xe8dcc8});
+    [-1,1].forEach(s=>{
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(.06,.3,6), hornMat);
+      horn.position.set(.24*s, 2.05, 0); horn.rotation.z = -0.4*s;
+      g.add(horn);
+    });
+    const armMat = new THREE.MeshStandardMaterial({color:0xcf9a78});
+    const armL = new THREE.Mesh(new THREE.BoxGeometry(.2,.75,.2), armMat);
+    armL.position.set(-.47,1.02,0); g.add(armL);
+    const armR = armL.clone(); armR.position.x = .47; g.add(armR);
+    const miniAxe = new THREE.Mesh(new THREE.BoxGeometry(.25,.18,.04), new THREE.MeshStandardMaterial({color:0xb9bec4, metalness:.6}));
+    miniAxe.position.set(.6,.75,0); g.add(miniAxe);
+    const legMat = new THREE.MeshStandardMaterial({color:0x3a2a1c});
+    const legL = new THREE.Mesh(new THREE.BoxGeometry(.24,.72,.24), legMat);
+    legL.position.set(-.18,.36,0); g.add(legL);
+    const legR = legL.clone(); legR.position.x = .18; g.add(legR);
+    return g;
+  }
+
+  function makeWizard(){
+    const g = new THREE.Group();
+    const robeMat = new THREE.MeshStandardMaterial({color:0x2a1a4a, roughness:.8, emissive:0x1a0f33, emissiveIntensity:.25});
+    const robe = new THREE.Mesh(new THREE.ConeGeometry(0.75, 1.9, 10), robeMat);
+    robe.position.y = 0.95; robe.castShadow = true;
+    g.add(robe);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), new THREE.MeshStandardMaterial({color:0xd9b38c}));
+    head.position.y = 2.05; g.add(head);
+    const beard = new THREE.Mesh(new THREE.ConeGeometry(0.22,0.5,8), new THREE.MeshStandardMaterial({color:0xe8dcc8}));
+    beard.position.set(0,1.82,0.12); g.add(beard);
+    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,0.06,10), robeMat);
+    hatBrim.position.y = 2.28; g.add(hatBrim);
+    const hatCone = new THREE.Mesh(new THREE.ConeGeometry(0.32,0.75,10), robeMat);
+    hatCone.position.y = 2.66; g.add(hatCone);
+    const staff = new THREE.Mesh(new THREE.CylinderGeometry(.035,.035,1.8,6), new THREE.MeshStandardMaterial({color:0x3b2718}));
+    staff.position.set(0.55,1.1,0); g.add(staff);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.14,10,8), new THREE.MeshStandardMaterial({color:0x8a5cff, emissive:0x8a5cff, emissiveIntensity:1.1}));
+    orb.position.set(0.55,2.05,0); g.add(orb);
+    g.add(new THREE.PointLight(0x8a5cff, 1.0, 6, 2));
+    return g;
+  }
+
+  function spawnGold(pos, amount){
+    const coin = new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.06,10), new THREE.MeshStandardMaterial({color:0xd4af37, emissive:0x553300, emissiveIntensity:.4, metalness:.7, roughness:.3}));
+    coin.position.set(pos.x, .3, pos.z);
+    coin.rotation.x = Math.PI/2;
+    scene.add(coin);
+    goldPickups.push({mesh:coin, amount});
+  }
+  function burst(pos, color, count){
+    for(let i=0;i<count;i++){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.08), new THREE.MeshBasicMaterial({color, transparent:true, opacity:1}));
+      p.position.copy(pos); p.position.y += 1.0 + Math.random()*.4;
+      scene.add(p);
+      const vel = new THREE.Vector3((Math.random()-.5)*4, Math.random()*4+1.5, (Math.random()-.5)*4);
+      particles.push({mesh:p, vel, life:1.0, maxLife:1.0});
+    }
+  }
+  function spawnArrowProjectile(start, end, color){
+    const g = new THREE.Group();
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.5,5), new THREE.MeshStandardMaterial({color}));
+    shaft.rotation.x = Math.PI/2;
+    g.add(shaft);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(.035,.12,5), new THREE.MeshStandardMaterial({color:0x8a8f94, metalness:.6}));
+    tip.rotation.x = -Math.PI/2; tip.position.z = -0.31;
+    g.add(tip);
+    const dir = end.clone().sub(start);
+    const dist = dir.length();
+    dir.normalize();
+    g.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,-1), dir);
+    g.position.copy(start);
+    scene.add(g);
+    const duration = Math.max(0.12, dist/48);
+    projectiles.push({mesh:g, start:start.clone(), end:end.clone(), elapsed:0, duration});
+  }
+
+  function spawnMagicBolt(start, end){
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8), new THREE.MeshStandardMaterial({color:0x8a5cff, emissive:0x8a5cff, emissiveIntensity:1.3}));
+    orb.position.copy(start);
+    scene.add(orb);
+    const dist = end.clone().sub(start).length();
+    const duration = Math.max(0.14, dist/34);
+    projectiles.push({mesh:orb, start:start.clone(), end:end.clone(), elapsed:0, duration});
+  }
+
+  // ================= AUDIO =================
+  let actx;
+  function sfx(type){
+    try{
+      if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.connect(g); g.connect(actx.destination);
+      const t = actx.currentTime;
+      if(type==='swing'){ o.type='sawtooth'; o.frequency.setValueAtTime(180,t); o.frequency.exponentialRampToValueAtTime(60,t+.15); g.gain.setValueAtTime(.12,t); g.gain.exponentialRampToValueAtTime(.001,t+.16); }
+      else if(type==='hit'){ o.type='square'; o.frequency.setValueAtTime(90,t); g.gain.setValueAtTime(.22,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); }
+      else if(type==='coin'){ o.type='sine'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(1400,t+.08); g.gain.setValueAtTime(.15,t); g.gain.exponentialRampToValueAtTime(.001,t+.12); }
+      else if(type==='hurt'){ o.type='sawtooth'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(40,t+.2); g.gain.setValueAtTime(.2,t); g.gain.exponentialRampToValueAtTime(.001,t+.22); }
+      else if(type==='bow'){ o.type='triangle'; o.frequency.setValueAtTime(320,t); o.frequency.exponentialRampToValueAtTime(700,t+.06); g.gain.setValueAtTime(.16,t); g.gain.exponentialRampToValueAtTime(.001,t+.14); }
+      else if(type==='armor'){ o.type='square'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(220,t+.1); g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.001,t+.15); }
+      o.start(t); o.stop(t+.25);
+    }catch(e){}
+  }
+
+  // ================= INPUT =================
+  const keys = {};
+  let yaw = 0, pitch = 0;
+  let locked = false;
+  let intentionalUnlock = false;
+  const canvas = renderer.domElement;
+  canvas.addEventListener('contextmenu', e=> e.preventDefault());
+
+  function requestGamePointerLock(){
+    if(phase !== 'raid' || P.dead) return;
+    intentionalUnlock = false;
+    try{
+      const result = canvas.requestPointerLock();
+      if(result && typeof result.catch === 'function') result.catch(()=>{});
+    }catch(e){}
+  }
+
+  document.addEventListener('pointerlockchange', ()=>{
+    locked = document.pointerLockElement === canvas;
+    document.getElementById('hint').style.display = locked ? 'block':'none';
+    if(locked){
+      // Pointer lock is active again, so the previous intentional unlock
+      // flag must not swallow the next ESC press.
+      intentionalUnlock = false;
+      document.getElementById('overlay').style.display = 'none';
+      document.getElementById('hud').style.display = 'block';
+    } else {
+      document.getElementById('hud').style.display = 'none';
+      isDrawing = false; drawTime = 0;
+
+      // Losing pointer lock (ESC, clicking outside the game, etc.)
+      // pauses the raid. The Resume button below requests a fresh
+      // pointer lock from a real user click.
+      if(!intentionalUnlock && phase==='raid' && !P.dead){
+        phase = 'paused';
+        renderPaused();
+        if(mpConnected) mpSend('pauseGame',{});
+      }
+
+      intentionalUnlock = false;
+    }
+  });
+  document.addEventListener('mousemove', (e)=>{
+    if(!locked) return;
+    yaw -= e.movementX * 0.0022;
+    pitch -= e.movementY * 0.0022;
+    pitch = Math.max(-1.3, Math.min(1.3, pitch));
+  });
+  window.addEventListener('keydown', e=>{
+    keys[e.code]=true;
+
+    // ESC explicitly pauses the raid. Pointer Lock's change event can
+    // arrive immediately after this key event, so mark the unlock as
+    // intentional before releasing the lock.
+    if(e.code==='Escape' && phase==='raid' && !P.dead){
+      e.preventDefault();
+      intentionalUnlock=true;
+      isDrawing=false;
+      drawTime=0;
+      phase='paused';
+      if(document.pointerLockElement===canvas){
+        try{ document.exitPointerLock(); }catch(err){}
+      }
+      renderPaused();
+      if(mpConnected) mpSend('pauseGame',{});
+      return;
+    }
+
+    // Retreating alone would end the raid for this player while the
+    // others keep fighting, so Q is disabled for the whole shared raid.
+    if(e.code==='KeyQ' && phase==='raid' && !P.dead && !mpConnected){ endRaid('retreat'); }
+    if(e.code==='Space' && phase==='raid' && !P.dead){ e.preventDefault(); toggleWeaponMode(); }
+  });
+  window.addEventListener('keyup', e=> keys[e.code]=false);
+
+  // R can be used to request the mouse lock again while in a raid.
+  // The browser still requires the key press to be a real user gesture.
+  window.addEventListener('keydown', e=>{
+    if(e.code==='KeyR' && phase==='raid' && !locked && !P.dead){
+      e.preventDefault();
+      requestGamePointerLock();
+    }
+  });
+  canvas.addEventListener('mousedown', e=>{
+    // If the player clicked back into the game after pointer lock was
+    // released, request it again from this user gesture.
+    if(!locked && phase==='raid' && !P.dead){
+      requestGamePointerLock();
+      return;
+    }
+    if(!locked) return;
+    if(weaponMode==='bow') startDraw(); else attack();
+  });
+  canvas.addEventListener('mouseup', e=>{
+    if(weaponMode==='bow') releaseDraw();
+  });
+
+  // ================= PLAYER STATE =================
+  const P = { health:100, maxHealth:100, stamina:100, maxStamina:100, armor:0, maxArmor:0, kills:0, lastHitTime:-999, dead:false };
+  let phase = 'select';
+  let currentCfg = null;
+  let currentWeapon = WEAPONS[0];
+  let currentBow = null;
+  let weaponMode = 'melee';
+  let swinging=false, swingTimer=0, swingCooldown=0, hitRegistered=false;
+  let isDrawing=false, drawTime=0, bowCooldown=0;
+
+  function equipWeapon(id){
+    const w = WEAPONS.find(w=>w.id===id);
+    if(!w || !ownedWeapons.has(id)) return;
+    if(w.type==='melee'){
+      equippedWeaponId = id; currentWeapon = w; applyAxeVisual(w);
+      document.getElementById('weaponPill').textContent = '🪓 '+w.name;
+    } else {
+      equippedBowId = id; currentBow = w; applyBowVisual(w);
+      const bp = document.getElementById('bowPill');
+      bp.style.display='inline-block'; bp.textContent = '🏹 '+w.name;
+    }
+    updateWeaponModeVisuals();
+  }
+
+  function equipArmor(id){
+    const a = ARMORS.find(a=>a.id===id);
+    if(!a || !ownedArmor.has(id)) return;
+    equippedArmorId = id; currentArmor = a;
+  }
+
+  function toggleWeaponMode(){
+    if(!equippedBowId){ showBanner('NO BOW OWNED — VISIT THE CAMP SHOP'); return; }
+    if(isDrawing){ isDrawing=false; drawTime=0; stringGroup.position.z=0; document.getElementById('drawBar').style.display='none'; }
+    weaponMode = weaponMode==='melee' ? 'bow' : 'melee';
+    updateWeaponModeVisuals();
+  }
+
+  function updateWeaponModeVisuals(){
+    axe.visible = weaponMode==='melee';
+    bowGroup.visible = weaponMode==='bow' && !!equippedBowId;
+    const wp = document.getElementById('weaponPill'), bp = document.getElementById('bowPill');
+    if(wp) wp.style.opacity = weaponMode==='melee' ? '1' : '0.45';
+    if(bp) bp.style.opacity = weaponMode==='bow' ? '1' : '0.45';
+  }
+
+  function attack(){
+    if(swinging || swingCooldown>0 || P.dead) return;
+    swinging=true; swingTimer=0; hitRegistered=false; swingCooldown=currentWeapon.cooldown;
+    sfx('swing');
+  }
+  function startDraw(){
+    if(P.dead || phase!=='raid' || !equippedBowId || bowCooldown>0 || isDrawing) return;
+    isDrawing = true; drawTime = 0;
+    document.getElementById('drawBar').style.display='block';
+  }
+  function releaseDraw(){
+    if(!isDrawing) return;
+    isDrawing = false;
+    document.getElementById('drawBar').style.display='none';
+    stringGroup.position.z = 0;
+    // Defensive: the equipped bow can in principle change out from under
+    // a player between startDraw() and releaseDraw() (e.g. loadout sync,
+    // host promotion). Bail out cleanly instead of throwing on a null
+    // currentBow, which used to freeze the draw bar and silently break
+    // bow firing for the rest of the raid.
+    if(!equippedBowId || !currentBow){ bowCooldown = 0; drawTime = 0; return; }
+    const frac = Math.min(1, drawTime/currentBow.drawTime);
+    bowCooldown = currentBow.cooldown;
+    drawTime = 0;
+    if(frac < 0.12) return;
+    fireBow(frac);
+  }
+  function fireBow(frac){
+    if(!currentBow) return;
+    const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+    const camFwd = new THREE.Vector3(); camera.getWorldDirection(camFwd);
+    const arcCos = Math.cos(THREE.MathUtils.degToRad(currentBow.arc));
+    let best=null, bestDist=Infinity;
+    villagers.forEach(v=>{
+      if(v.dead) return;
+      const vp = v.mesh.position.clone(); vp.y += 1.0;
+      const toV = vp.clone().sub(camPos);
+      const dist = toV.length();
+      if(dist > currentBow.range) return;
+      toV.normalize();
+      if(toV.dot(camFwd) < arcCos) return;
+      if(dist < bestDist){ bestDist = dist; best = v; }
+    });
+    const dmg = currentBow.dmg[0] + frac*(currentBow.dmg[1]-currentBow.dmg[0]);
+    const origin = camPos.clone().add(camFwd.clone().multiplyScalar(0.4)).add(new THREE.Vector3(0,-0.12,0));
+    let hitPoint;
+    if(best){
+      best.hp -= dmg;
+      if(!best.isGuard) best.state='flee'; else { best.state='attack'; best.target='player'; best.targetPlayerId=mpPlayerId; }
+      best.calmTimer = 0;
+      burst(best.mesh.position.clone(), 0x8a0000, 10);
+      if(best.hp<=0 && !best.dead) killVillager(best, false);
+      // Let the host's authoritative copy know, so this kill sticks
+      // instead of getting reverted by the next world snapshot.
+      mpReportVillagerHit(villagers.indexOf(best), dmg);
+      hitPoint = best.mesh.position.clone(); hitPoint.y += 1.0;
+      flashCrosshair(); sfx('hit');
+    } else {
+      hitPoint = camPos.clone().add(camFwd.clone().multiplyScalar(currentBow.range));
+    }
+    spawnArrowProjectile(origin, hitPoint, 0x6b4a2f);
+    sfx('bow');
+  }
+  function doHitCheck(){
+    const camPos = new THREE.Vector3(); camera.getWorldPosition(camPos);
+    const camFwd = new THREE.Vector3(); camera.getWorldDirection(camFwd);
+    const arcCos = Math.cos(THREE.MathUtils.degToRad(currentWeapon.arc));
+    let hitAny=false;
+    villagers.forEach((v,idx)=>{
+      if(v.dead) return;
+      const vp = v.mesh.position.clone(); vp.y += 1.0;
+      const toV = vp.clone().sub(camPos);
+      const dist = toV.length();
+      if(dist > currentWeapon.range) return;
+      toV.normalize();
+      if(toV.dot(camFwd) < arcCos) return;
+      hitAny = true;
+      const dmg = currentWeapon.dmg[0] + Math.random()*(currentWeapon.dmg[1]-currentWeapon.dmg[0]);
+      v.hp -= dmg;
+      if(!v.isGuard) v.state='flee'; else { v.state='attack'; v.target='player'; v.targetPlayerId=mpPlayerId; }
+      v.calmTimer = 0;
+      burst(v.mesh.position.clone(), 0x8a0000, 10);
+      if(v.hp<=0 && !v.dead) killVillager(v, false);
+      // Let the host's authoritative copy know, so this kill sticks
+      // instead of getting reverted by the next world snapshot.
+      mpReportVillagerHit(idx, dmg);
+    });
+    if(hitAny){ sfx('hit'); flashCrosshair(); }
+  }
+  function killVillager(v, byAlly){
+    v.dead = true; v.state='dead';
+    P.kills++;
+    document.getElementById('killCount').textContent = P.kills;
+    const amount = v.isBoss ? (300+Math.floor(Math.random()*150)) : v.isGuard ? (12+Math.floor(Math.random()*18)) : (5+Math.floor(Math.random()*12));
+    spawnGold(v.mesh.position, amount);
+    burst(v.mesh.position.clone(), 0x6b0000, 18);
+    showBanner((v.isGuard ? 'GUARD SLAIN' : 'VILLAGER FALLEN') + (byAlly ? ' BY YOUR KIN' : ''));
+  }
+  function flashCrosshair(){
+    const c = document.getElementById('crosshair');
+    c.classList.add('hit');
+    setTimeout(()=>c.classList.remove('hit'), 140);
+  }
+  let bannerTimeout;
+  function showBanner(text){
+    const b = document.getElementById('banner');
+    b.textContent = text; b.style.opacity = 1;
+    clearTimeout(bannerTimeout);
+    bannerTimeout = setTimeout(()=> b.style.opacity=0, 700);
+  }
+  function hurtPlayer(rawDmg){
+    if(P.dead) return;
+    let dmg = rawDmg;
+    let absorbed = 0;
+    if(P.armor>0){
+      absorbed = Math.min(P.armor, dmg);
+      P.armor -= absorbed;
+      dmg -= absorbed;
+    }
+    const vg = document.getElementById('vignette');
+    if(absorbed>0){
+      sfx('armor');
+      vg.style.boxShadow = 'inset 0 0 220px 60px rgba(110,170,220,.5)';
+      setTimeout(()=> vg.style.boxShadow='inset 0 0 220px 40px rgba(150,0,0,0)', 150);
+    }
+    if(dmg>0){
+      P.health -= dmg;
+      P.lastHitTime = performance.now()/1000;
+      sfx('hurt');
+      vg.style.boxShadow = 'inset 0 0 220px 60px rgba(180,0,0,.55)';
+      setTimeout(()=> vg.style.boxShadow='inset 0 0 220px 40px rgba(150,0,0,0)', 180);
+      if(P.health<=0){
+        P.health=0;
+        P.dead=true;
+        if(mpConnected) enterHoldingZone();
+        else endRaid('dead');
+      }
+    }
+  }
+
+  // ================= VILLAGE GENERATION =================
+  function angularDist(a,b){ let d=Math.abs(a-b)%(Math.PI*2); return d>Math.PI? Math.PI*2-d : d; }
+
+  function clearVillage(){
+    envMeshes.forEach(o=>{ scene.remove(o); disposeMesh(o); });
+    envMeshes.length = 0;
+    obstacles.length = 0;
+    villagers.forEach(v=> scene.remove(v.mesh));
+    villagers.length = 0;
+    mpRemoteVillagers.clear();
+    allies.forEach(a=> scene.remove(a.mesh));
+    allies.length = 0;
+    mpClearRemoteAllies();
+    goldPickups.forEach(g=> scene.remove(g.mesh));
+    goldPickups.length = 0;
+    particles.forEach(p=> scene.remove(p.mesh));
+    particles.length = 0;
+    projectiles.forEach(p=> scene.remove(p.mesh));
+    projectiles.length = 0;
+    wizardSpawned = false;
+    finalBossSpawned = false;
+    gateSealed = false;
+    portcullisMesh = null;
+    portcullisSealing = false;
+    const bb = document.getElementById('bossBar');
+    if(bb) bb.style.display = 'none';
+  }
+
+  function spawnWizardBoss(){
+    if(wizardSpawned || !currentCfg || !currentCfg.hasWizardTower) return;
+    wizardSpawned = true;
+
+    const wizardMesh = makeWizard();
+    wizardMesh.position.set(0, TOWER_HEIGHT, 0);
+    scene.add(wizardMesh);
+    villagers.push({
+      mesh: wizardMesh, isGuard:true, type:'wizard', stationary:true, magic:true, isBoss:true,
+      hp: WIZARD_HP, maxHp: WIZARD_HP,
+      dmgRange: WIZARD_DMG,
+      speed:0, range:46, ranged:true, atkCooldownBase:1.7, alertRadius:46,
+      state:'attack', home:new THREE.Vector3(0,TOWER_HEIGHT,0), target:'player',
+      combatTarget:null, wanderTimer:0, calmTimer:0, attackTimer:0.5, dead:false, fallProgress:0
+    });
+    updateEnemyCountHUD();
+    showBanner('THE WIZARD AWAKENS');
+
+    // The tower-climb that triggers this is purely local to whichever
+    // player's own avatar reaches the top — it was never told to the
+    // network. If a GUEST is the one who climbs, only THEIR array ever
+    // got a wizard pushed onto it; the host's authoritative array (the
+    // only one that actually ends the raid) could go the whole fight
+    // without one, silently dropping every hit the guest reports and
+    // leaving the raid impossible to complete. Broadcast the spawn so
+    // every client's array gets the entry at the same index.
+    if(mpConnected && mpIsHost) mpSend('bossSpawned',{boss:'wizard'});
+  }
+
+  function spawnFinalBoss(){
+    if(finalBossSpawned || !currentCfg || !currentCfg.hasFinalBoss) return;
+    finalBossSpawned = true;
+    const gt = GUARD_TYPES.warlord;
+    const mesh = makeGuard('warlord');
+    mesh.position.set(0, 0, 0);
+    scene.add(mesh);
+    villagers.push({
+      mesh, isGuard:true, type:'warlord', isBoss:true,
+      hp: WARLORD_BOSS_HP, maxHp: WARLORD_BOSS_HP,
+      dmgRange: WARLORD_BOSS_DMG,
+      speed: currentCfg.guardSpeed*gt.speedMult, range:gt.range, ranged:false,
+      atkCooldownBase:gt.atkCooldown, alertRadius:999,
+      state:'attack', home:new THREE.Vector3(0,0,0), target:'player',
+      combatTarget:null, wanderTimer:0, calmTimer:0, attackTimer:0.7, dead:false, fallProgress:0
+    });
+    updateEnemyCountHUD();
+    const bb = document.getElementById('bossBar');
+    if(bb) bb.style.display = 'block';
+    showBanner('THE WARLORD RISES');
+
+    // Same networking gap as the wizard above: this can fire on a
+    // guest's client purely from their own locally-synced villagers
+    // array reaching "all dead" a beat before the host's does. Tell
+    // the host explicitly so its authoritative array is guaranteed to
+    // get the boss too, instead of hoping both sides happen to trigger
+    // it independently at the same moment.
+    if(mpConnected && mpIsHost) mpSend('bossSpawned',{boss:'warlord'});
+  }
+
+
+  // MULTIPLAYER STEP 1:
+  // Both players use the same seeded world generation for a level.
+  // This makes the villagers (and the other randomly placed world
+  // objects created during buildVillage) appear in the same places
+  // on both computers without changing the working movement system.
+  function mpSeedForLevel(idx){
+    let x = (Number(idx) + 1) * 0x45d9f3b;
+    x ^= x >>> 16;
+    x = Math.imul(x, 0x45d9f3b);
+    x ^= x >>> 16;
+    return x >>> 0;
+  }
+
+  function mpSeededRandom(seedObj){
+    seedObj.value = (Math.imul(seedObj.value ^ (seedObj.value >>> 15), 1 | seedObj.value) + 0x6D2B79F5) | 0;
+    let t = Math.imul(seedObj.value ^ (seedObj.value >>> 7), 61 | seedObj.value);
+    t ^= t + Math.imul(t ^ (t >>> 14), 9 | t);
+    return ((t ^ (t >>> 10)) >>> 0) / 4294967296;
+  }
+
+  function buildVillage(idx){
+    const originalRandom = Math.random;
+    const seedObj = {value: mpSeedForLevel(idx)};
+    Math.random = () => mpSeededRandom(seedObj);
+
+    try{
+      return buildVillageLocal(idx);
+    } finally {
+      Math.random = originalRandom;
+    }
+  }
+
+  function buildVillageLocal(idx){
+    clearVillage();
+    const cfg = VILLAGES[idx];
+    currentCfg = cfg;
+    pendingVillageIdx = idx;
+
+    scene.fog.color.setHex(cfg.fog);
+    scene.background.setHex(cfg.fog);
+    ambientLight.color.setHex(cfg.ambient);
+    sun.color.setHex(cfg.sun);
+    WORLD_BOUND = cfg.radius * 1.6;
+
+    const hutSpots = [];
+    if(!cfg.noHuts && cfg.hutCount>0){
+      const angleStep = (Math.PI*2)/cfg.hutCount;
+      for(let i=0;i<cfg.hutCount;i++){
+        const angle = i*angleStep + (Math.random()-0.5)*angleStep*0.4;
+        const r = cfg.radius*0.5*(0.75+Math.random()*0.4);
+        const x = Math.cos(angle)*r, z = Math.sin(angle)*r;
+        const hut = makeHut();
+        hut.position.set(x,0,z);
+        hut.rotation.y = Math.random()*Math.PI;
+        scene.add(hut); envMeshes.push(hut);
+        obstacles.push({x,z,radius:3.0});
+        hutSpots.push({x,z});
+      }
+    }
+
+    if(!cfg.isFinalFortress){
+      const treeCount = 26 + Math.floor(cfg.radius*0.6);
+      for(let i=0;i<treeCount;i++){
+        const ang = Math.random()*Math.PI*2;
+        const rad = cfg.radius*0.98 + Math.random()*cfg.radius*0.55;
+        const x = Math.cos(ang)*rad, z = Math.sin(ang)*rad;
+        const tree = makeTree();
+        tree.position.set(x,0,z);
+        scene.add(tree); envMeshes.push(tree);
+        obstacles.push({x,z,radius:1.0});
+      }
+    }
+
+    // castle walls
+    if(cfg.hasWalls){
+      const wallSegments = 20;
+      const wStep = (Math.PI*2)/wallSegments;
+      const segWidth = 2*cfg.wallRadius*Math.sin(wStep/2)*1.08;
+      for(let i=0;i<wallSegments;i++){
+        const a = i*wStep;
+        const nearGate = cfg.gateAngles.some(ga=>angularDist(a,ga) < wStep*0.75);
+        if(nearGate) continue;
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(segWidth, cfg.wallHeight, 1.2), new THREE.MeshStandardMaterial({color:0x6b6a63, roughness:.95}));
+        seg.position.set(Math.cos(a)*cfg.wallRadius, cfg.wallHeight/2, Math.sin(a)*cfg.wallRadius);
+        seg.rotation.y = -(a+Math.PI/2);
+        seg.castShadow = true; seg.receiveShadow = true;
+        scene.add(seg); envMeshes.push(seg);
+        const tangent = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0,seg.rotation.y,0));
+        [-1,1].forEach(m=>{
+          const mer = new THREE.Mesh(new THREE.BoxGeometry(segWidth*0.22,0.6,1.3), new THREE.MeshStandardMaterial({color:0x5c5b55}));
+          mer.position.set(seg.position.x + tangent.x*m*segWidth*0.32, cfg.wallHeight+0.3, seg.position.z + tangent.z*m*segWidth*0.32);
+          mer.rotation.y = seg.rotation.y;
+          scene.add(mer); envMeshes.push(mer);
+        });
+      }
+      cfg.gateAngles.forEach(ga=>{
+        const pillarMat = new THREE.MeshStandardMaterial({color:0x5c564d, roughness:.9});
+        const gateW = segWidth*0.9;
+        [-1,1].forEach(side=>{
+          const pa = ga; // pillar sits at the gate angle, offset tangentially
+          const tangent = new THREE.Vector3(-Math.sin(pa),0,Math.cos(pa));
+          const px = Math.cos(pa)*cfg.wallRadius + tangent.x*side*gateW*0.5;
+          const pz = Math.sin(pa)*cfg.wallRadius + tangent.z*side*gateW*0.5;
+          const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.3, cfg.wallHeight+1.6, 1.3), pillarMat);
+          pillar.position.set(px, (cfg.wallHeight+1.6)/2, pz);
+          pillar.castShadow = true; pillar.receiveShadow = true;
+          scene.add(pillar); envMeshes.push(pillar);
+        });
+        const lintel = new THREE.Mesh(new THREE.BoxGeometry(gateW, 0.9, 1.5), pillarMat);
+        lintel.position.set(Math.cos(ga)*cfg.wallRadius, cfg.wallHeight+1.15, Math.sin(ga)*cfg.wallRadius);
+        lintel.rotation.y = -(ga+Math.PI/2);
+        scene.add(lintel); envMeshes.push(lintel);
+
+        if(cfg.oneWayGate){
+          const barMat = new THREE.MeshStandardMaterial({color:0x201d19, metalness:.7, roughness:.35});
+          const portcullis = new THREE.Group();
+          const barCount = 7;
+          for(let bi=0;bi<barCount;bi++){
+            const bar = new THREE.Mesh(new THREE.BoxGeometry(0.1, cfg.wallHeight+1.2, 0.1), barMat);
+            bar.position.set(-gateW/2 + (bi/(barCount-1))*gateW, (cfg.wallHeight+1.2)/2, 0);
+            portcullis.add(bar);
+          }
+          for(let bj=0;bj<3;bj++){
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(gateW, 0.1, 0.14), barMat);
+            rail.position.set(0, (bj/2)*(cfg.wallHeight+1.2), 0);
+            portcullis.add(rail);
+          }
+          [-1,1].forEach(sp=>{
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(.08,.4,5), barMat);
+            spike.position.set(sp*gateW*0.02, 0.15, 0);
+            portcullis.add(spike);
+          });
+          portcullis.position.set(Math.cos(ga)*cfg.wallRadius, cfg.wallHeight+1.2, Math.sin(ga)*cfg.wallRadius);
+          portcullis.rotation.y = -(ga+Math.PI/2);
+          scene.add(portcullis); envMeshes.push(portcullis);
+          portcullisMesh = portcullis;
+          portcullisMesh.userData.restY = portcullis.position.y;
+          portcullisMesh.userData.baseXZ = { x:portcullis.position.x, z:portcullis.position.z };
+        }
+      });
+      for(let j=0;j<cfg.wallGuardCount;j++){
+        let a = (j/cfg.wallGuardCount)*Math.PI*2 + 0.15;
+        if(cfg.gateAngles.some(ga=>angularDist(a,ga)<0.3)) a += 0.5;
+        const x = Math.cos(a)*cfg.wallRadius, z = Math.sin(a)*cfg.wallRadius;
+        const gt = GUARD_TYPES.wallguard;
+        const mesh = makeGuard('wallguard');
+        mesh.position.set(x, cfg.wallHeight, z);
+        mesh.rotation.y = Math.random()*Math.PI*2;
+        scene.add(mesh);
+        villagers.push({
+          mesh, isGuard:true, type:'wallguard', stationary:true,
+          hp: Math.round(cfg.guardHp*gt.hpMult), maxHp: Math.round(cfg.guardHp*gt.hpMult),
+          dmgRange:[cfg.guardDmg[0]*gt.dmgMult, cfg.guardDmg[1]*gt.dmgMult],
+          speed:0, range:gt.range, ranged:true, atkCooldownBase:gt.atkCooldown, alertRadius:gt.alertRadius,
+          state:'wander', home:new THREE.Vector3(x,cfg.wallHeight,z), target:new THREE.Vector3(x,cfg.wallHeight,z),
+          combatTarget:null, wanderTimer:0, calmTimer:0, attackTimer:Math.random()*1, dead:false, fallProgress:0
+        });
+      }
+    }
+
+    // moat — a ring of water around the walls, crossable only via the bridge at the gate
+    if(cfg.hasMoat){
+      const moatInnerR = cfg.wallRadius + 2;
+      const moatOuterR = cfg.wallRadius + cfg.moatWidth;
+      const moat = new THREE.Mesh(
+        new THREE.RingGeometry(moatInnerR, moatOuterR, 56),
+        new THREE.MeshStandardMaterial({color:0x0c2a38, roughness:.25, metalness:.15, transparent:true, opacity:.9})
+      );
+      moat.rotation.x = -Math.PI/2;
+      moat.position.y = -0.12;
+      moat.receiveShadow = true;
+      scene.add(moat); envMeshes.push(moat);
+
+      cfg.gateAngles.forEach(ga=>{
+        const bridgeLen = cfg.moatWidth + 4;
+        const bridge = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.3, bridgeLen), new THREE.MeshStandardMaterial({color:0x4a3a28, roughness:.9}));
+        const midR = cfg.wallRadius + cfg.moatWidth/2 + 1;
+        bridge.position.set(Math.cos(ga)*midR, 0.05, Math.sin(ga)*midR);
+        bridge.rotation.y = -(ga+Math.PI/2);
+        bridge.castShadow = true; bridge.receiveShadow = true;
+        scene.add(bridge); envMeshes.push(bridge);
+      });
+    }
+
+    // castle decoration — corner towers and a central dais for the final fortress
+    if(cfg.isFinalFortress){
+      bonfireGroup.position.set(cfg.wallRadius*0.55, 0, cfg.wallRadius*0.55);
+      const towerMat = new THREE.MeshStandardMaterial({color:0x4a463f, roughness:.9});
+      [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([sx,sz])=>{
+        const tx = sx*cfg.wallRadius*0.8, tz = sz*cfg.wallRadius*0.8;
+        const towerH = cfg.wallHeight+6;
+        const tower = new THREE.Mesh(new THREE.CylinderGeometry(3.2,3.6,towerH,10), towerMat);
+        tower.position.set(tx, towerH/2, tz);
+        tower.castShadow = true; tower.receiveShadow = true;
+        scene.add(tower); envMeshes.push(tower);
+        obstacles.push({x:tx, z:tz, radius:3.6});
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(4.2,3.4,10), new THREE.MeshStandardMaterial({color:0x5c1f1f}));
+        roof.position.set(tx, towerH+1.7, tz);
+        scene.add(roof); envMeshes.push(roof);
+      });
+      const dais = new THREE.Mesh(new THREE.CylinderGeometry(6,6.6,0.5,16), new THREE.MeshStandardMaterial({color:0x2a1414, roughness:.85}));
+      dais.position.set(0,0.25,0);
+      scene.add(dais); envMeshes.push(dais);
+    }
+
+    // wizard tower — solid core pillar the player must spiral around to climb
+    if(cfg.hasWizardTower){
+      bonfireGroup.position.set(11, 0, 11);
+      const stoneMat = new THREE.MeshStandardMaterial({color:0x5c5850, roughness:.92});
+      const core = new THREE.Mesh(new THREE.CylinderGeometry(TOWER_CORE_R, TOWER_CORE_R+0.4, TOWER_HEIGHT, 14), stoneMat);
+      core.position.set(0, TOWER_HEIGHT/2, 0);
+      core.castShadow = true; core.receiveShadow = true;
+      scene.add(core); envMeshes.push(core);
+      obstacles.push({x:0, z:0, radius:TOWER_CORE_R});
+
+      const segsPerTurn = 10;
+      const totalSegs = segsPerTurn*TOWER_TURNS;
+      const angleStepTower = (Math.PI*2)/segsPerTurn;
+      const midR = (TOWER_CORE_R+TOWER_OUTER_R)/2;
+      const rampMat = new THREE.MeshStandardMaterial({color:0x716b5f, roughness:.9});
+      for(let i=0;i<=totalSegs;i++){
+        const a = i*angleStepTower;
+        const h = (i/segsPerTurn)*TOWER_HEIGHT_PER_TURN;
+        if(h > TOWER_HEIGHT+0.5) break;
+        const seg = new THREE.Mesh(new THREE.BoxGeometry(TOWER_RAMP_W, 0.4, midR*angleStepTower*1.35), rampMat);
+        seg.position.set(Math.cos(a)*midR, Math.min(h,TOWER_HEIGHT)+0.2, Math.sin(a)*midR);
+        seg.rotation.y = -(a+Math.PI/2);
+        seg.rotation.x = 0.16;
+        seg.castShadow = true; seg.receiveShadow = true;
+        scene.add(seg); envMeshes.push(seg);
+      }
+
+      const platform = new THREE.Mesh(new THREE.CylinderGeometry(TOWER_PLATFORM_R, TOWER_PLATFORM_R+0.5, 0.6, 16), stoneMat);
+      platform.position.set(0, TOWER_HEIGHT, 0);
+      platform.castShadow = true; platform.receiveShadow = true;
+      scene.add(platform); envMeshes.push(platform);
+      for(let i=0;i<10;i++){
+        const a = (i/10)*Math.PI*2;
+        const mer = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.9,0.7), new THREE.MeshStandardMaterial({color:0x4a463f}));
+        mer.position.set(Math.cos(a)*TOWER_PLATFORM_R, TOWER_HEIGHT+0.75, Math.sin(a)*TOWER_PLATFORM_R);
+        scene.add(mer); envMeshes.push(mer);
+      }
+      const brazier = new THREE.PointLight(0x8a5cff, 1.8, 20, 2);
+      brazier.position.set(0, TOWER_HEIGHT+2.2, 0);
+      scene.add(brazier); envMeshes.push(brazier);
+
+      // The wizard is intentionally NOT spawned here. He appears only after
+      // the player has physically climbed the spiral and reached the top platform.
+    } else if(!cfg.isFinalFortress){
+      bonfireGroup.position.set(0,0,0);
+    }
+    climb.active = false; climb.angle = 0; climb.lastRaw = 0;
+    wizardSpawned = false;
+
+    // civilians
+    for(let i=0;i<cfg.villagerCount;i++){
+      const spot = hutSpots[i % hutSpots.length];
+      const ang = Math.random()*Math.PI*2, rad = 2+Math.random()*4.5;
+      const x = spot.x + Math.cos(ang)*rad, z = spot.z + Math.sin(ang)*rad;
+      const mesh = makeVillagerCiv();
+      mesh.position.set(x,0,z);
+      mesh.rotation.y = Math.random()*Math.PI*2;
+      scene.add(mesh);
+      villagers.push({
+        mesh, isGuard:false, hp:100, maxHp:100, state:'wander',
+        home:new THREE.Vector3(x,0,z), target:new THREE.Vector3(x,0,z),
+        wanderTimer: Math.random()*3, calmTimer:0, dead:false, fallProgress:0
+      });
+    }
+
+    // ground guards
+    cfg.guardMix.forEach((type, gi)=>{
+      let x, z;
+      if(hutSpots.length>0){
+        const spot = hutSpots[gi % hutSpots.length];
+        const ang = Math.random()*Math.PI*2, rad = 3+Math.random()*5;
+        x = spot.x + Math.cos(ang)*rad; z = spot.z + Math.sin(ang)*rad;
+      } else {
+        // no huts (the final fortress) — scatter guards through the courtyard,
+        // keeping clear of the central dais reserved for the warlord
+        const maxR = (cfg.wallRadius||cfg.radius) * 0.86;
+        const ang = Math.random()*Math.PI*2, rad = 9 + Math.random()*(maxR-9);
+        x = Math.cos(ang)*rad; z = Math.sin(ang)*rad;
+      }
+      const gt = GUARD_TYPES[type];
+      const mesh = makeGuard(type);
+      mesh.position.set(x,0,z);
+      mesh.rotation.y = Math.random()*Math.PI*2;
+      scene.add(mesh);
+      villagers.push({
+        mesh, isGuard:true, type,
+        hp: Math.round(cfg.guardHp*gt.hpMult), maxHp: Math.round(cfg.guardHp*gt.hpMult),
+        dmgRange:[cfg.guardDmg[0]*gt.dmgMult, cfg.guardDmg[1]*gt.dmgMult],
+        speed: cfg.guardSpeed*gt.speedMult, range: gt.range, ranged: gt.ranged,
+        atkCooldownBase: gt.atkCooldown, alertRadius: gt.alertRadius,
+        state:'wander', home:new THREE.Vector3(x,0,z), target:new THREE.Vector3(x,0,z),
+        combatTarget:null, wanderTimer:Math.random()*3, calmTimer:0,
+        attackTimer: Math.random()*1, dead:false, fallProgress:0
+      });
+    });
+
+    player.position.set(0,0, cfg.radius*1.2);
+    yaw = 0; pitch = 0;
+    P.health = P.maxHealth; P.stamina = P.maxStamina; P.dead = false;
+    P.maxArmor = currentArmor ? currentArmor.armorHp : 0; P.armor = P.maxArmor;
+    swinging=false; swingCooldown=0; isDrawing=false; drawTime=0; bowCooldown=0;
+    weaponMode='melee'; updateWeaponModeVisuals();
+    stringGroup.position.z = 0;
+
+    // Allies are host-authoritative only — every connected client used
+    // to spawn its OWN private set from its own recruitedAllies count,
+    // invisible to and unusable by anyone else. A guest's client no
+    // longer spawns real (AI-driven) allies at all; it just mirrors the
+    // host's via mpApplyAllySnapshot (see mpUpdate), the same way it
+    // already mirrors villagers.
+    if(!mpConnected || mpIsHost){
+      const totalAllies = Math.min(getMaxAllyCap(), 1+recruitedAllies);
+      for(let i=0;i<totalAllies;i++){
+        const mesh = makeBarbarian();
+        const ang = (i/totalAllies)*Math.PI*2;
+        mesh.position.set(player.position.x+Math.cos(ang)*2.5, 0, player.position.z+Math.sin(ang)*2.5);
+        scene.add(mesh);
+        allies.push({ mesh, hp:220, maxHp:220, state:'follow', target:null, attackTimer:0, followAngle:ang });
+      }
+    }
+
+    updateEnemyCountHUD();
+  }
+
+  function updateEnemyCountHUD(){
+    const left = villagers.filter(v=>!v.dead).length;
+    document.getElementById('enemyLeft').textContent = left;
+  }
+
+  // ================= MOVEMENT =================
+  const MOVE_SPEED=6, SPRINT_SPEED=10, PLAYER_RADIUS=0.55;
+
+  function pushOutOfObstacles(pos, radius){
+    obstacles.forEach(o=>{
+      const dx=pos.x-o.x, dz=pos.z-o.z, d=Math.sqrt(dx*dx+dz*dz), minD=o.radius+radius;
+      if(d<minD && d>0.0001){ pos.x += (dx/d)*(minD-d); pos.z += (dz/d)*(minD-d); }
+    });
+  }
+  function applyWallConstraint(newPos, prevPos, radius){
+    if(!currentCfg || !currentCfg.hasWalls) return;
+    const R = currentCfg.wallRadius;
+    const prevD = Math.hypot(prevPos.x, prevPos.z);
+    const prevOutside = prevD > R;
+    const angle = Math.atan2(newPos.z, newPos.x);
+    const inGate = !gateSealed && currentCfg.gateAngles.some(ga => angularDist(angle,ga) < currentCfg.gateHalfWidth);
+    if(inGate) return;
+    const newD = Math.hypot(newPos.x, newPos.z);
+    const nowOutside = newD > R;
+    if(nowOutside !== prevOutside){
+      const clampD = prevOutside ? Math.max(newD, R+radius+0.15) : Math.min(newD, R-radius-0.15);
+      const scale = newD>0.0001 ? clampD/newD : 1;
+      newPos.x *= scale; newPos.z *= scale;
+    }
+  }
+
+  function applyMoatConstraint(newPos, prevPos, radius){
+    if(!currentCfg || !currentCfg.hasMoat) return;
+    const innerR = currentCfg.wallRadius + 1.6;
+    const outerR = currentCfg.wallRadius + currentCfg.moatWidth + 1.2;
+    const angle = Math.atan2(newPos.z, newPos.x);
+    const onBridge = currentCfg.gateAngles.some(ga=>angularDist(angle,ga) < currentCfg.gateHalfWidth*2.4);
+    if(onBridge) return;
+    const d = Math.hypot(newPos.x, newPos.z);
+    if(d>innerR && d<outerR){
+      const prevD = Math.hypot(prevPos.x, prevPos.z);
+      const clampD = prevD<=innerR ? innerR-0.2 : outerR+0.2;
+      const scale = d>0.0001 ? clampD/d : 1;
+      newPos.x *= scale; newPos.z *= scale;
+    }
+  }
+
+  function sealFortressGate(){
+    if(gateSealed) return;
+    gateSealed = true;
+    portcullisSealing = true;
+    showBanner('THE GATE SEALS BEHIND YOU');
+    sfx('armor');
+  }
+
+  function updatePortcullis(dt){
+    if(portcullisMesh && portcullisSealing){
+      portcullisMesh.position.y = Math.max(0, portcullisMesh.position.y - dt*7);
+    }
+  }
+
+  function applyTowerClimb(newPos){
+    if(!currentCfg || !currentCfg.hasWizardTower) return;
+    const prevElevated = player.position.y > 0.3;
+    const nearTop = (climb.angle/(Math.PI*2)) >= (TOWER_TURNS-0.05);
+    const containR = nearTop ? TOWER_PLATFORM_R : TOWER_OUTER_R;
+    const d0 = Math.hypot(newPos.x, newPos.z);
+    if(prevElevated && d0 > containR){
+      const scale = (containR-0.05)/d0;
+      newPos.x *= scale; newPos.z *= scale;
+    }
+    const d = Math.hypot(newPos.x, newPos.z);
+    if(d <= containR+0.3){
+      const rawAngle = Math.atan2(newPos.z, newPos.x);
+      if(!climb.active){ climb.active = true; climb.lastRaw = rawAngle; }
+      else {
+        let delta = rawAngle - climb.lastRaw;
+        while(delta > Math.PI) delta -= Math.PI*2;
+        while(delta < -Math.PI) delta += Math.PI*2;
+        climb.angle += delta;
+        climb.lastRaw = rawAngle;
+      }
+      const turns = Math.max(0, climb.angle/(Math.PI*2));
+      newPos.y = Math.min(turns*TOWER_HEIGHT_PER_TURN, TOWER_HEIGHT);
+    } else {
+      climb.active = false;
+      newPos.y = 0;
+    }
+  }
+
+  function updateMovement(dt){
+    player.rotation.y = yaw;
+    camera.rotation.x = pitch;
+    const forward = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(0,yaw,0));
+    const right = new THREE.Vector3(1,0,0).applyEuler(new THREE.Euler(0,yaw,0));
+    let moveDir = new THREE.Vector3();
+    if(keys['KeyW']) moveDir.add(forward);
+    if(keys['KeyS']) moveDir.sub(forward);
+    if(keys['KeyD']) moveDir.add(right);
+    if(keys['KeyA']) moveDir.sub(right);
+    const moving = moveDir.lengthSq() > 0.0001;
+    if(moving) moveDir.normalize();
+    const sprinting = keys['ShiftLeft'] && moving && P.stamina>0;
+    const speed = sprinting ? SPRINT_SPEED : MOVE_SPEED;
+    if(sprinting) P.stamina = Math.max(0, P.stamina - 28*dt);
+    else P.stamina = Math.min(P.maxStamina, P.stamina + 18*dt);
+    const newPos = player.position.clone().add(moveDir.multiplyScalar(speed*dt));
+    newPos.x = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, newPos.x));
+    newPos.z = Math.max(-WORLD_BOUND, Math.min(WORLD_BOUND, newPos.z));
+    pushOutOfObstacles(newPos, PLAYER_RADIUS);
+    applyWallConstraint(newPos, player.position, PLAYER_RADIUS);
+    applyMoatConstraint(newPos, player.position, PLAYER_RADIUS);
+    applyTowerClimb(newPos);
+    player.position.copy(newPos);
+
+    if(currentCfg && currentCfg.oneWayGate && !gateSealed){
+      const d = Math.hypot(player.position.x, player.position.z);
+      if(d < currentCfg.wallRadius - 3) sealFortressGate();
+    }
+    updatePortcullis(dt);
+
+    // Level 4's wizard boss remains completely absent until the player
+    // finishes the spiral ascent and reaches the tower's top platform.
+    if(currentCfg && currentCfg.hasWizardTower && !wizardSpawned &&
+       player.position.y >= TOWER_HEIGHT-0.05 &&
+       climb.angle/(Math.PI*2) >= TOWER_TURNS-0.05 &&
+       Math.hypot(player.position.x, player.position.z) <= TOWER_PLATFORM_R+0.3){
+      spawnWizardBoss();
+      // This trigger is purely local to this player's own position. If
+      // this client is a guest, the host has no other way to find out
+      // the tower's been climbed — tell it directly so its own
+      // authoritative array gets the wizard too.
+      if(mpConnected && !mpIsHost) mpSend('reachedBoss',{boss:'wizard'});
+    }
+
+    const now = performance.now()/1000;
+    if(now - P.lastHitTime > 4 && P.health < P.maxHealth) P.health = Math.min(P.maxHealth, P.health + 3*dt);
+  }
+
+  function moveTowards(mesh, target, speed, dt, avoidRadius){
+    const dir = new THREE.Vector3(target.x-mesh.position.x, 0, target.z-mesh.position.z);
+    const d = dir.length();
+    if(d < 0.05) return;
+    dir.normalize();
+    const p = new THREE.Vector3(mesh.position.x + dir.x*speed*dt, 0, mesh.position.z + dir.z*speed*dt);
+    pushOutOfObstacles(p, avoidRadius||0.5);
+    mesh.position.x = p.x; mesh.position.z = p.z;
+    mesh.lookAt(mesh.position.x+dir.x, mesh.position.y, mesh.position.z+dir.z);
+  }
+
+  // ================= VILLAGER / GUARD AI =================
+  const ALERT_RADIUS=9, FLEE_SAFE_DIST=22, SCARE_RADIUS=10;
+
+  // Plays the "fall over" death animation for any dead villager on
+  // EVERY client (host and non-host alike). Villager death itself is
+  // decided only by the host, but v.dead is synced to every client via
+  // the world snapshot (see mpApplyWorldSnapshot), so this just needs
+  // to run unconditionally so the fall is visible on all screens.
+  function updateVillagerFalls(dt){
+    villagers.forEach(v=>{
+      if(v.dead && v.fallProgress<1){
+        v.fallProgress = Math.min(1, v.fallProgress + dt*2.2);
+        v.mesh.rotation.z = THREE.MathUtils.lerp(0, Math.PI/2, v.fallProgress);
+      }
+    });
+  }
+
+  function updateVillagers(dt){
+    // In multiplayer, the host is authoritative for villager movement.
+    // Non-host clients only receive and display the host's villager state.
+    if(mpConnected && !mpIsHost) return;
+
+    villagers.forEach(v=>{
+      if(v.dead) return;
+      // Look at every connected player (self + remote), not just the
+      // host's own position, so guards and villagers can notice and
+      // react to anyone in the raid.
+      const np = nearestPlayerTo(v.mesh.position);
+      const pPos = np.pos;
+      const distToPlayer = np.dist;
+      if(v.isGuard){ updateGuard(v, dt, np, distToPlayer); return; }
+
+      let nearestAlly=null, nearestAllyDist=Infinity;
+      allies.forEach(a=>{
+        if(a.hp<=0) return;
+        const adx=a.mesh.position.x-v.mesh.position.x, adz=a.mesh.position.z-v.mesh.position.z;
+        const ad = Math.sqrt(adx*adx+adz*adz);
+        if(ad<nearestAllyDist){ nearestAllyDist=ad; nearestAlly=a; }
+      });
+
+      if(v.state==='wander'){
+        if(nearestAlly && nearestAllyDist < SCARE_RADIUS){ v.state='herded'; v.calmTimer=0; }
+        else if(distToPlayer < ALERT_RADIUS){ v.state='flee'; v.fleeFromId=np.id; }
+        else {
+          v.wanderTimer -= dt;
+          if(v.wanderTimer<=0){
+            v.wanderTimer = 2+Math.random()*3;
+            const ang = Math.random()*Math.PI*2, rad = Math.random()*4;
+            v.target.set(v.home.x+Math.cos(ang)*rad, 0, v.home.z+Math.sin(ang)*rad);
+          }
+          moveTowards(v.mesh, v.target, 2.0, dt, 0.5);
+        }
+      } else if(v.state==='herded'){
+        moveTowards(v.mesh, pPos, 6.2, dt, 0.5);
+        if(!(nearestAlly && nearestAllyDist < SCARE_RADIUS*1.6) && distToPlayer > 6){
+          v.calmTimer += dt;
+          if(v.calmTimer > 2.2){ v.state='wander'; v.calmTimer=0; v.target.copy(v.mesh.position); }
+        } else v.calmTimer = 0;
+      } else if(v.state==='flee'){
+        // Keep fleeing from whichever player triggered the flee, even
+        // if a different player is now technically nearest.
+        const fleeFromPos = mpPlayerPosById(v.fleeFromId) || pPos;
+        const away = new THREE.Vector3(v.mesh.position.x-fleeFromPos.x, 0, v.mesh.position.z-fleeFromPos.z);
+        if(away.lengthSq()<0.001) away.set(Math.random()-.5,0,Math.random()-.5);
+        away.normalize();
+        const fleeTarget = v.mesh.position.clone().add(away.multiplyScalar(6));
+        moveTowards(v.mesh, fleeTarget, 7.2, dt, 0.5);
+        const fleeDist = v.mesh.position.distanceTo(fleeFromPos);
+        if(fleeDist > FLEE_SAFE_DIST){
+          v.calmTimer += dt;
+          if(v.calmTimer > 2){ v.state='wander'; v.calmTimer=0; v.target.copy(v.mesh.position); }
+        } else v.calmTimer = 0;
+      }
+    });
+  }
+
+  function resolveAttack(v, dt, targetPos, isAllyTarget, targetPlayerId){
+    const tdx = targetPos.x-v.mesh.position.x, tdz = targetPos.z-v.mesh.position.z;
+    const td = Math.sqrt(tdx*tdx+tdz*tdz);
+    if(!v.stationary && td > v.range){
+      moveTowards(v.mesh, targetPos, v.speed, dt, 0.5);
+      return;
+    }
+    v.mesh.lookAt(targetPos.x, v.mesh.position.y, targetPos.z);
+    if(v.stationary && td > v.range) return;
+    v.attackTimer -= dt;
+    if(v.attackTimer<=0){
+      v.attackTimer = v.atkCooldownBase;
+      const dmg = v.dmgRange[0] + Math.random()*(v.dmgRange[1]-v.dmgRange[0]);
+      const shooterHead = v.mesh.position.clone(); shooterHead.y += 1.3;
+      if(isAllyTarget){
+        v.target.hp -= dmg;
+        burst(v.target.mesh.position.clone(), 0x8a0000, 6);
+        if(v.ranged){ const tp=v.target.mesh.position.clone(); tp.y+=1.0; v.magic ? spawnMagicBolt(shooterHead, tp) : spawnArrowProjectile(shooterHead, tp, 0x883333); }
+        if(v.target.hp<=0){ killAlly(v.target); v.state='wander'; v.target=null; }
+      } else {
+        if(v.ranged){ const tp=targetPos.clone(); tp.y+=1.4; v.magic ? spawnMagicBolt(shooterHead, tp) : spawnArrowProjectile(shooterHead, tp, 0x883333); }
+        // Deliver the damage to whichever player is actually being
+        // attacked — locally if it's the host, over the network
+        // otherwise (only the host runs this AI at all).
+        mpDamagePlayer(targetPlayerId, dmg);
+      }
+    }
+  }
+
+  function updateGuard(v, dt, np, distToPlayer){
+    let nearestAlly=null, nearestAllyDist=Infinity;
+    allies.forEach(a=>{
+      if(a.hp<=0) return;
+      const adx=a.mesh.position.x-v.mesh.position.x, adz=a.mesh.position.z-v.mesh.position.z;
+      const ad=Math.sqrt(adx*adx+adz*adz);
+      if(ad<nearestAllyDist){ nearestAllyDist=ad; nearestAlly=a; }
+    });
+
+    if(v.state==='wander'){
+      const playerClose = distToPlayer < v.alertRadius;
+      const allyClose = nearestAlly && nearestAllyDist < v.alertRadius;
+      if(playerClose && (!allyClose || distToPlayer<=nearestAllyDist)){ v.state='attack'; v.target='player'; v.targetPlayerId=np.id; v.attackTimer=0.3; }
+      else if(allyClose){ v.state='attack'; v.target=nearestAlly; v.attackTimer=0.3; }
+      else if(!v.stationary){
+        v.wanderTimer -= dt;
+        if(v.wanderTimer<=0){
+          v.wanderTimer = 2+Math.random()*3;
+          const ang=Math.random()*Math.PI*2, rad=Math.random()*3;
+          v.target = new THREE.Vector3(v.home.x+Math.cos(ang)*rad,0,v.home.z+Math.sin(ang)*rad);
+        }
+        if(v.target instanceof THREE.Vector3) moveTowards(v.mesh, v.target, 2.0, dt, 0.5);
+      }
+      return;
+    }
+
+    if(v.state==='attack'){
+      let isAllyTarget = v.target!=='player';
+      if(isAllyTarget){
+        if(!v.target || v.target.hp<=0){
+          v.target = (distToPlayer<v.alertRadius*1.6) ? 'player' : null;
+          if(!v.target){ v.state='wander'; return; }
+          isAllyTarget = v.target!=='player';
+          if(!isAllyTarget) v.targetPlayerId=np.id;
+        }
+      }
+      // Keep chasing the SAME player it's engaged with (tracked by id),
+      // not just whoever happens to be nearest this frame.
+      const targetPos = isAllyTarget ? v.target.mesh.position : mpPlayerPosById(v.targetPlayerId||np.id);
+      resolveAttack(v, dt, targetPos, isAllyTarget, v.targetPlayerId||np.id);
+    }
+  }
+
+  function killAlly(a){
+    a.hp = 0;
+    scene.remove(a.mesh);
+    showBanner('A COMPANION HAS FALLEN');
+  }
+
+  // ================= ALLY AI =================
+  const ALLY_AGGRO=18, ALLY_SPEED=6.0;
+  function updateAllies(dt){
+    allies.forEach((a)=>{
+      if(a.hp<=0) return;
+      if(a.state==='engage' && (!a.target || a.target.dead)){ a.state='follow'; a.target=null; }
+      if(a.state==='follow'){
+        let nearest=null, nearestD=Infinity;
+        villagers.forEach(v=>{
+          if(!v.dead){
+            const dx=v.mesh.position.x-a.mesh.position.x, dz=v.mesh.position.z-a.mesh.position.z;
+            const d=Math.sqrt(dx*dx+dz*dz);
+            if(d<ALLY_AGGRO && d<nearestD){ nearestD=d; nearest=v; }
+          }
+        });
+        if(nearest){ a.state='engage'; a.target=nearest; }
+        else {
+          const ang = a.followAngle + performance.now()*0.0002;
+          const target = new THREE.Vector3(player.position.x+Math.cos(ang)*2.8, 0, player.position.z+Math.sin(ang)*2.8);
+          moveTowards(a.mesh, target, ALLY_SPEED*0.75, dt, 0.5);
+        }
+      } else if(a.state==='engage'){
+        const tp = a.target.mesh.position;
+        const dx=tp.x-a.mesh.position.x, dz=tp.z-a.mesh.position.z, d=Math.sqrt(dx*dx+dz*dz);
+        if(d>MELEE_RANGE){ moveTowards(a.mesh, tp, ALLY_SPEED, dt, 0.5); }
+        else {
+          a.mesh.lookAt(tp.x, a.mesh.position.y, tp.z);
+          a.attackTimer -= dt;
+          if(a.attackTimer<=0){
+            a.attackTimer = 0.9;
+            const dmg = 22+Math.random()*14;
+            a.target.hp -= dmg;
+            burst(a.target.mesh.position.clone(), 0x8a0000, 8);
+            if(a.target.hp<=0 && !a.target.dead){ killVillager(a.target, true); a.state='follow'; a.target=null; }
+          }
+        }
+      }
+    });
+  }
+
+  // ================= GOLD / PARTICLES / PROJECTILES =================
+  function updateGold(dt){
+    for(let i=goldPickups.length-1;i>=0;i--){
+      const g = goldPickups[i];
+      g.mesh.rotation.z += dt*3;
+      const dx = player.position.x-g.mesh.position.x, dz = player.position.z-g.mesh.position.z;
+      if(Math.sqrt(dx*dx+dz*dz) < 1.6){
+        gold += g.amount; sfx('coin');
+        document.getElementById('goldCount').textContent = gold;
+        scene.remove(g.mesh); goldPickups.splice(i,1);
+      }
+    }
+  }
+  function updateParticles(dt){
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.vel.y -= 9*dt;
+      p.mesh.position.add(p.vel.clone().multiplyScalar(dt));
+      p.life -= dt*1.3;
+      p.mesh.material.opacity = Math.max(0,p.life/p.maxLife);
+      if(p.life<=0){ scene.remove(p.mesh); p.mesh.geometry.dispose(); p.mesh.material.dispose(); particles.splice(i,1); }
+    }
+  }
+  function updateProjectiles(dt){
+    for(let i=projectiles.length-1;i>=0;i--){
+      const pr = projectiles[i];
+      pr.elapsed += dt;
+      const t = Math.min(1, pr.elapsed/pr.duration);
+      pr.mesh.position.lerpVectors(pr.start, pr.end, t);
+      if(t>=1){ scene.remove(pr.mesh); disposeMesh(pr.mesh); projectiles.splice(i,1); }
+    }
+  }
+  function updateSwing(dt){
+    swingCooldown = Math.max(0, swingCooldown-dt);
+    if(swinging){
+      swingTimer += dt;
+      const t = Math.min(1, swingTimer/(0.32*(currentWeapon.cooldown/0.55)));
+      axe.rotation.x = AXE_REST.x - Math.sin(t*Math.PI)*1.9;
+      axe.rotation.z = AXE_REST.z - Math.sin(t*Math.PI)*0.7;
+      if(t>=0.45 && !hitRegistered){ hitRegistered=true; doHitCheck(); }
+      if(t>=1){ swinging=false; axe.rotation.x=AXE_REST.x; axe.rotation.z=AXE_REST.z; }
+    }
+  }
+  function updateBowDraw(dt){
+    bowCooldown = Math.max(0, bowCooldown-dt);
+    if(isDrawing && equippedBowId){
+      drawTime = Math.min(currentBow.drawTime, drawTime+dt);
+      const frac = drawTime/currentBow.drawTime;
+      stringGroup.position.z = frac*0.22;
+      document.getElementById('drawBarFill').style.width = (frac*100)+'%';
+    }
+  }
+  function updateHUD(){
+    document.getElementById('healthFill').style.width = (P.health/P.maxHealth*100)+'%';
+    document.getElementById('staminaFill').style.width = (P.stamina/P.maxStamina*100)+'%';
+    const at = document.getElementById('armorTrack'), al = document.getElementById('armorLabel');
+    if(P.maxArmor>0){
+      at.style.display='block'; al.style.display='block';
+      document.getElementById('armorFill').style.width = (P.armor/P.maxArmor*100)+'%';
+    } else { at.style.display='none'; al.style.display='none'; }
+    const bb = document.getElementById('bossBar');
+    const boss = villagers.find(v=>v.isBoss && v.type==='warlord' && !v.dead);
+    if(boss){
+      bb.style.display='block';
+      document.getElementById('bossFill').style.width = Math.max(0, boss.hp/boss.maxHp*100)+'%';
+    } else if(bb.style.display!=='none'){
+      bb.style.display='none';
+    }
+  }
+  function updateBonfire(t){
+    fireLight.intensity = 2.0 + Math.sin(t*11)*0.4 + Math.random()*0.15;
+    flame.scale.y = 1 + Math.sin(t*14)*0.12;
+  }
+
+  // ================= RAID END =================
+  function endRaid(result){
+    if(phase!=='raid' && phase!=='holding') return;
+    if(mpConnected){
+      if(mpIsHost) mpHostFinishRaid(result);
+      return;
+    }
+    intentionalUnlock=true;
+    try{ document.exitPointerLock(); }catch(e){}
+    isDrawing=false; drawTime=0; stringGroup.position.z=0;
+    document.getElementById('drawBar').style.display='none';
+    if(result==='win' && currentCfg && currentCfg.isFinalFortress){
+      villagesCleared[pendingVillageIdx]=true;
+      renderFinale();
+      return;
+    }
+    phase='shop';
+    let msg;
+    if(result==='win'){
+      villagesCleared[pendingVillageIdx]=true;
+      msg=`${currentCfg.name} cleared! Every last defender has fallen.`;
+    }else if(result==='dead'){
+      msg=`You were overwhelmed at ${currentCfg.name}. You crawl back to camp with what gold you'd already claimed.`;
+    }else{
+      msg=`You retreated from ${currentCfg.name} with your spoils.`;
+    }
+    renderShop(msg);
+  }
+
+  function checkWin(){
+    if((phase!=='raid' && phase!=='holding')) return;
+
+    const livingVillagers = villagers.filter(v=>!v.dead).length;
+
+    if(mpConnected && mpIsHost && mpAllPlayersDead()){
+      endRaid('dead');
+      return;
+    }
+
+    // Dead entities remain in the array for animation and synchronization,
+    // so use the actual living count for ordinary raid completion.
+    if(livingVillagers===0 && !(currentCfg && (currentCfg.hasWizardTower || currentCfg.hasFinalBoss))){
+      endRaid('win');
+      return;
+    }
+    // A wizard-tower raid cannot be cleared until the boss has spawned.
+    // This prevents wiping the ground forces from ending Level 4 early.
+    if(currentCfg && currentCfg.hasWizardTower && !wizardSpawned) return;
+    // The final fortress: the Warlord only rises once every guard has fallen,
+    // and the raid isn't won until he does too.
+    if(currentCfg && currentCfg.hasFinalBoss && !finalBossSpawned){
+      if(villagers.every(v=>v.dead)){
+        spawnFinalBoss();
+        // Same gap as the wizard: this client's own local villagers
+        // array can reach "all dead" a moment before the host's does
+        // (snapshot latency). If that client is a guest, make sure the
+        // host still finds out so its authoritative array gets the boss.
+        if(mpConnected && !mpIsHost) mpSend('reachedBoss',{boss:'warlord'});
+      }
+      return;
+    }
+    if(villagers.every(v=>v.dead)) endRaid('win');
+  }
+
+  // ================= PASSWORD SAVE SYSTEM =================
+  function encodePassword(){
+    const state = {
+      g: gold,
+      w: Array.from(ownedWeapons),
+      ew: equippedWeaponId,
+      eb: equippedBowId,
+      ar: Array.from(ownedArmor),
+      ea: equippedArmorId,
+      bt: Array.from(ownedBoats),
+      ra: recruitedAllies,
+      vc: villagesCleared.map(c=>c?1:0)
+    };
+    try{
+      return btoa(unescape(encodeURIComponent(JSON.stringify(state)))).replace(/=+$/,'');
+    }catch(e){ return ''; }
+  }
+  function applyPassword(raw){
+    if(!raw) return false;
+    try{
+      const json = decodeURIComponent(escape(atob(raw.trim())));
+      const state = JSON.parse(json);
+      if(typeof state.g !== 'number') return false;
+
+      gold = Math.max(0, Math.floor(state.g)||0);
+
+      ownedWeapons.clear(); ownedWeapons.add('rusty');
+      (state.w||[]).forEach(id=>{ if(WEAPONS.some(w=>w.id===id)) ownedWeapons.add(id); });
+      equippedWeaponId = ownedWeapons.has(state.ew) ? state.ew : 'rusty';
+      currentWeapon = WEAPONS.find(w=>w.id===equippedWeaponId) || WEAPONS[0];
+
+      equippedBowId = (state.eb && ownedWeapons.has(state.eb)) ? state.eb : null;
+      currentBow = equippedBowId ? WEAPONS.find(w=>w.id===equippedBowId) : null;
+
+      ownedArmor.clear();
+      (state.ar||[]).forEach(id=>{ if(ARMORS.some(a=>a.id===id)) ownedArmor.add(id); });
+      equippedArmorId = (state.ea && ownedArmor.has(state.ea)) ? state.ea : null;
+      currentArmor = equippedArmorId ? ARMORS.find(a=>a.id===equippedArmorId) : null;
+
+      ownedBoats.clear();
+      (state.bt||[]).forEach(id=>{ if(BOATS.some(b=>b.id===id)) ownedBoats.add(id); });
+      recruitedAllies = Math.max(0, Math.min(Math.floor(state.ra)||0, getMaxAllyCap()-1));
+
+      if(Array.isArray(state.vc)){
+        for(let i=0;i<villagesCleared.length;i++) villagesCleared[i] = !!state.vc[i];
+      }
+
+      applyAxeVisual(currentWeapon);
+      if(currentBow) applyBowVisual(currentBow);
+      const gc = document.getElementById('goldCount'); if(gc) gc.textContent = gold;
+      const wp = document.getElementById('weaponPill'); if(wp) wp.textContent = '🪓 '+currentWeapon.name;
+      const bp = document.getElementById('bowPill');
+      if(bp){ if(currentBow){ bp.style.display='inline-block'; bp.textContent = '🏹 '+currentBow.name; } else bp.style.display='none'; }
+      return true;
+    }catch(e){ return false; }
+  }
+  function copyPasswordBox(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.select();
+    el.setSelectionRange(0, 99999);
+    try{ navigator.clipboard.writeText(el.value); }catch(e){}
+    try{ document.execCommand('copy'); }catch(e){}
+  }
+
+  // ================= UI RENDERING =================
+  const overlay = document.getElementById('overlay');
+  document.getElementById('mpCreate').addEventListener('click',()=>{ const room=mpMakeRoom(); mpConnect('create',room); });
+  document.getElementById('mpJoin').addEventListener('click',()=>mpConnect('join',document.getElementById('mpRoom').value));
+  document.getElementById('mpStart').addEventListener('click',()=>{ if(mpIsHost && mpConnected) mpSend('startGame'); });
+  document.getElementById('mpDisconnect').addEventListener('click',mpDisconnect);
+  document.getElementById('mpClose').addEventListener('click',mpClose);
+  function isUnlocked(idx){ return idx===0 || villagesCleared[idx-1]; }
+  function mixSummary(cfg){
+    const counts = {};
+    cfg.guardMix.forEach(t=> counts[t]=(counts[t]||0)+1);
+    let s = Object.keys(counts).map(t=> `${counts[t]}× ${GUARD_TYPES[t].label}`).join(' · ');
+    if(cfg.wallGuardCount) s += ` · ${cfg.wallGuardCount}× Wall Archer`;
+    if(cfg.hasWizardTower) s += ` · 1× Wizard (boss)`;
+    if(cfg.hasFinalBoss) s += ` · 1× Warlord (FINAL BOSS)`;
+    return s;
+  }
+
+  function renderSelect(msg){
+    phase='select';
+    overlay.style.background = '';
+    let cards = VILLAGES.map((v,i)=>{
+      const unlocked = isUnlocked(i);
+      const cleared = villagesCleared[i];
+      const totalGuards = v.guardCount + (v.wallGuardCount||0) + (v.hasWizardTower?1:0) + (v.hasFinalBoss?1:0);
+      return `
+      <div class="card ${unlocked?'':'locked'}">
+        ${cleared?'<div class="clearedTag">✓ CLEARED</div>':''}
+        <h3>${v.name}</h3>
+        <div class="diff ${v.difficulty}">${v.difficulty} · ${totalGuards} guards${v.hasWalls?' · walled':''}</div>
+        <div class="desc">${v.desc}</div>
+        <div class="mix">${unlocked?mixSummary(v):'???'}</div>
+        <button data-action="enter-select" data-idx="${i}" ${unlocked?'':'disabled'}>${unlocked?'Raid this village':'Locked'}</button>
+      </div>`;
+    }).join('');
+    overlay.innerHTML = `
+      <h1>HUNTER OF VILLAGERS</h1>
+      <div class="sub">${msg||'Choose Your Raid'}</div>
+      <div class="statusrow">
+        <span>⛁ <b>${gold}</b> gold</span>
+        <span>Axe: <b>${currentWeapon.name}</b></span>
+        <span>Bow: <b>${currentBow?currentBow.name:'none'}</b></span>
+        <span>Armor: <b>${currentArmor?currentArmor.name:'none'}</b></span>
+        <span>Allies: <b>${Math.min(getMaxAllyCap(),1+recruitedAllies)}/${getMaxAllyCap()}</b></span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;">
+        <input id="pwLoadInputSelect" placeholder="Have a password? Paste it here to restore your progress..." style="width:360px;max-width:75vw;padding:9px;border-radius:4px;border:1px solid rgba(154,163,171,.4);background:rgba(0,0,0,.35);color:var(--bone);font-family:monospace;font-size:11px;">
+        <button data-action="load-password" data-target="pwLoadInputSelect" style="font-family:'Cinzel',serif;font-weight:700;padding:8px 16px;background:rgba(90,140,200,.25);border:1px solid #6a9ac9;color:var(--bone);border-radius:4px;cursor:pointer;font-size:11.5px;letter-spacing:1px;">Load Password</button>
+      </div>
+      <div class="cardgrid">${cards}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:2px;">
+        <button class="bigbtn" data-action="open-multiplayer" style="background:linear-gradient(180deg,#59636b,#2b2926);border-color:rgba(154,163,171,.65);">Multiplayer</button>
+        <button class="bigbtn" data-action="open-shop">Visit the Shop</button>
+      </div>
+    `;
+    overlay.style.display='flex';
+
+    // Host-only START GAME button. Rebuilt on every renderSelect() call
+    // (not just on lobbyUpdate) so it reliably survives the host visiting
+    // the shop, loading a password, or any other screen change while
+    // still in the multiplayer lobby.
+    if(mpConnected && mpIsHost && !mpHostStarted && mpPlayerCount>=2){
+      const start=document.createElement('button');
+      start.id='mpSelectStart';
+      start.className='bigbtn';
+      start.textContent='START GAME';
+      start.style.marginBottom='18px';
+      start.addEventListener('click',()=>{
+        if(mpConnected && mpIsHost && !mpHostStarted){
+          mpHostStarted=true;
+          mpSend('startGame',{});
+        }
+      });
+      const grid=overlay.querySelector('.cardgrid');
+      if(grid) overlay.insertBefore(start,grid);
+    }
+  }
+
+  function renderEntering(idx){
+    phase='entering';
+    const v = VILLAGES[idx];
+    overlay.innerHTML = `
+      <h1>${v.name}</h1>
+      <div class="sub">${v.difficulty} Raid</div>
+      <div class="controls">
+        <b>WASD</b> move &nbsp;•&nbsp; <b>Shift</b> sprint &nbsp;•&nbsp; <b>Mouse</b> look<br>
+        <b>Click</b> attack with your active weapon ${equippedBowId?'&nbsp;•&nbsp; hold to draw the bow, release to fire':''}<br>
+        ${equippedBowId?'<b>Space</b> switch between axe and bow &nbsp;•&nbsp; ':''}<b>Esc</b> pause${mpConnected?'':' &nbsp;•&nbsp; <b>Q</b> retreat to camp'}<br>
+        Your barbarian kin will hunt down guards and villagers alike.<br>
+        ${v.hasWalls? 'This village is walled — archers on the ramparts can only be struck with a bow.<br>':''}
+        ${v.hasWizardTower? 'A wizard commands the tower at the heart of the fortress — walk in a circle around its base to spiral up the ramp and reach him.<br>':''}
+        ${v.isFinalFortress? 'This is no village — it is a fortress. A moat rings its walls, crossable only by the bridge, and the single gate will seal shut behind you the moment you set foot inside. There are no villagers here — only its garrison, and something far worse at the heart of the keep.<br>':''}
+        Watch for spearmen, archers, berserkers${v.hasFinalBoss?', and the Warlord himself':(v.guardMix.includes('warlord')?', and a warlord':'')}.
+      </div>
+      <button class="bigbtn" data-action="enter-village" data-idx="${idx}">Enter the Village</button>
+    `;
+    overlay.style.display='flex';
+  }
+
+  function renderPaused(){
+    overlay.style.background = '';
+    const pw = encodePassword();
+    overlay.innerHTML = `
+      <h1 style="font-size:34px">PAUSED</h1>
+      ${mpConnected ? '<div class="sub" style="margin-bottom:6px;">The raid is paused for everyone. Either hunter can resume it.</div>' : ''}
+      <div class="sub" style="margin-bottom:6px;">Your Password</div>
+      <div class="controls" style="max-width:520px;margin-bottom:10px;">Save this password somewhere safe to restore your gold, gear, allies, and cleared villages later.</div>
+      <textarea id="pwBox" readonly onclick="this.select()" style="width:420px;max-width:90vw;height:58px;background:rgba(0,0,0,.4);color:var(--bone);border:1px solid rgba(214,138,60,.4);border-radius:4px;padding:8px;font-family:monospace;font-size:11px;margin-bottom:10px;">${pw}</textarea><br>
+      <button class="bigbtn" data-action="copy-password" data-target="pwBox" style="font-size:12.5px;padding:8px 20px;margin-bottom:18px;">Copy Password</button><br>
+      <button class="bigbtn" data-action="resume">Resume Raid</button>
+      ${mpConnected ? '' : '<button class="bigbtn" style="margin-top:12px;background:linear-gradient(180deg,#8a1f1f,#5a0f0f)" data-action="retreat">Retreat to Camp</button>'}
+    `;
+    overlay.style.display='flex';
+  }
+
+  function renderResumePrompt(){
+    overlay.style.background = '';
+    overlay.innerHTML = `
+      <h1 style="font-size:34px">RAID RESUMED</h1>
+      <div class="sub" style="margin-bottom:14px;">The other hunter resumed the raid.</div>
+      <button class="bigbtn" data-action="resume-click">Click to Continue</button>
+    `;
+    overlay.style.display='flex';
+  }
+
+  function renderFinale(){
+    phase='finale';
+    document.getElementById('hud').style.display='none';
+    overlay.style.background = '#000';
+    overlay.innerHTML = `
+      <div id="finaleText" style="max-width:680px;font-family:'Cinzel',serif;font-size:21px;line-height:2.1;color:var(--bone);opacity:0;transition:opacity 3s ease-in;padding:40px;text-align:center;">
+        And thus ended the empire, destroyed by the Hunter of Villagers, but a new empire would rise from the ashes, the King of Villagers would return...
+      </div>
+      <button class="bigbtn" id="finaleBtn" data-action="finale-continue" style="opacity:0;transition:opacity 1.5s ease-in;">Return to Camp</button>
+    `;
+    overlay.style.display='flex';
+    setTimeout(()=>{ const t=document.getElementById('finaleText'); if(t) t.style.opacity='1'; }, 400);
+    setTimeout(()=>{ const b=document.getElementById('finaleBtn'); if(b) b.style.opacity='1'; }, 3200);
+  }
+
+  function renderShop(message){
+    phase='shop';
+    overlay.style.background = '';
+    // Weapons, armor, boats, and ally recruiting are host-controlled —
+    // everyone always mirrors the host's exact loadout (see
+    // mpBroadcastHostLoadout), so guests get a read-only view here
+    // instead of a separate, wasted gold economy of their own.
+    const guestLocked = mpConnected && !mpIsHost;
+    function weaponCard(w){
+      const owned = ownedWeapons.has(w.id);
+      const equipped = (w.type==='melee' ? equippedWeaponId===w.id : equippedBowId===w.id);
+      let btn;
+      if(equipped) btn = `<button class="owned" disabled>Equipped</button>`;
+      else if(owned) btn = `<button class="owned" data-action="equip-weapon" data-id="${w.id}" ${guestLocked?'disabled':''}>Equip</button>`;
+      else btn = `<button data-action="buy-weapon" data-id="${w.id}" ${(guestLocked||gold<w.cost)?'disabled':''}>Buy — ${w.cost}g</button>`;
+      const statLine = w.type==='melee'
+        ? `<div class="stat">Swing speed: ${(1/w.cooldown).toFixed(2)}/s</div><div class="stat">Reach: ${w.range.toFixed(1)}m</div>`
+        : `<div class="stat">Draw time: ${w.drawTime.toFixed(2)}s</div><div class="stat">Range: ${w.range}m</div>`;
+      return `<div class="wcard ${equipped?'equipped':''}"><h4>${w.name}</h4><div class="stat">Damage: ${w.dmg[0]}–${w.dmg[1]}</div>${statLine}${btn}</div>`;
+    }
+    function boatCard(b){
+      const owned = ownedBoats.has(b.id);
+      const btn = owned ? `<button class="owned" disabled>Owned</button>` : `<button data-action="buy-boat" data-id="${b.id}" ${(guestLocked||gold<b.cost)?'disabled':''}>Buy — ${b.cost}g</button>`;
+      return `<div class="wcard ${owned?'equipped':''}"><h4>${b.name}</h4><div class="stat">+${b.capBonus} max allies</div>${btn}</div>`;
+    }
+    function armorCard(a){
+      const owned = ownedArmor.has(a.id);
+      const equipped = equippedArmorId===a.id;
+      let btn;
+      if(equipped) btn = `<button class="owned" disabled>Equipped</button>`;
+      else if(owned) btn = `<button class="owned" data-action="equip-armor" data-id="${a.id}" ${guestLocked?'disabled':''}>Equip</button>`;
+      else btn = `<button data-action="buy-armor" data-id="${a.id}" ${(guestLocked||gold<a.cost)?'disabled':''}>Buy — ${a.cost}g</button>`;
+      return `<div class="wcard ${equipped?'equipped':''}"><h4>${a.name}</h4><div class="stat">+${a.armorHp} armor (absorbed before health)</div>${btn}</div>`;
+    }
+    const axeCards = WEAPONS.filter(w=>w.type==='melee').map(weaponCard).join('');
+    const bowCards = WEAPONS.filter(w=>w.type==='bow').map(weaponCard).join('');
+    const boatCards = BOATS.map(boatCard).join('');
+    const armorCards = ARMORS.map(armorCard).join('');
+
+    const cap = getMaxAllyCap();
+    const allyCount = Math.min(cap,1+recruitedAllies);
+    const nextCost = allyRecruitCost(recruitedAllies);
+    const allyMaxed = allyCount>=cap;
+
+    const pw = encodePassword();
+    overlay.innerHTML = `
+      <h1 style="font-size:36px">CAMP</h1>
+      <div class="sub">${message||''}</div>
+      <div class="statusrow"><span>⛁ <b>${gold}</b> gold</span></div>
+      ${guestLocked?'<div class="sub" style="color:var(--amber);margin-bottom:6px">Gear, armor, boats, and allies are chosen by the host — everyone in the raid shares the host\'s loadout.</div>':''}
+      <div class="sectionLabel">Password</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:flex-start;margin-bottom:10px;">
+        <textarea id="pwBoxShop" readonly onclick="this.select()" style="width:340px;max-width:80vw;height:52px;background:rgba(0,0,0,.4);color:var(--bone);border:1px solid rgba(214,138,60,.4);border-radius:4px;padding:8px;font-family:monospace;font-size:11px;">${pw}</textarea>
+        <button data-action="copy-password" data-target="pwBoxShop" style="font-family:'Cinzel',serif;font-weight:700;padding:8px 16px;background:rgba(214,138,60,.25);border:1px solid var(--amber);color:var(--bone);border-radius:4px;cursor:pointer;font-size:11.5px;letter-spacing:1px;">Copy</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:22px;">
+        <input id="pwLoadInputShop" placeholder="Paste a password to load progress..." style="width:300px;max-width:70vw;padding:9px;border-radius:4px;border:1px solid rgba(154,163,171,.4);background:rgba(0,0,0,.35);color:var(--bone);font-family:monospace;font-size:11px;">
+        <button data-action="load-password" data-target="pwLoadInputShop" style="font-family:'Cinzel',serif;font-weight:700;padding:8px 16px;background:rgba(90,140,200,.25);border:1px solid #6a9ac9;color:var(--bone);border-radius:4px;cursor:pointer;font-size:11.5px;letter-spacing:1px;">Load</button>
+      </div>
+      <div class="sectionLabel">Axes</div>
+      <div class="shopgrid">${axeCards}</div>
+      <div class="sectionLabel">Bows — click to draw, release to loose (Space to switch)</div>
+      <div class="shopgrid">${bowCards}</div>
+      <div class="sectionLabel">Armor — a shield of health taken before your own</div>
+      <div class="shopgrid">${armorCards}</div>
+      <div class="sectionLabel">Boats — raise your max allies</div>
+      <div class="shopgrid">${boatCards}</div>
+      <div class="allybox">
+        <h4>Barbarian Kin</h4>
+        <div class="stat" style="margin-bottom:8px">${allyCount} of ${cap} fighting at ${guestLocked?"the host's":'your'} side</div>
+        <button data-action="recruit-ally" ${(guestLocked||allyMaxed)?'disabled':(gold<nextCost?'disabled':'')} style="background:rgba(90,140,200,.25);border:1px solid #6a9ac9;color:#e8dcc8;padding:9px 18px;border-radius:4px;cursor:pointer;font-family:'Cinzel',serif;">
+          ${allyMaxed?'All kin recruited':'Recruit another — '+nextCost+'g'}
+        </button>
+      </div>
+      <button class="bigbtn" data-action="continue-select">Return to the Map</button>
+    `;
+    overlay.style.display='flex';
+  }
+
+  overlay.addEventListener('click', (e)=>{
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const action = el.dataset.action;
+    if(action==='open-multiplayer'){ mpOpen(); }
+    else if(action==='enter-select'){
+      if(mpConnected && mpIsHost && !mpHostStarted){
+        renderSelect(mpPlayerCount>=2
+          ? 'Click START GAME above before choosing a village.'
+          : 'Waiting for another player to join before you can start...');
+        return;
+      }
+      renderEntering(parseInt(el.dataset.idx));
+    }
+    else if(action==='enter-village'){
+      const idx=parseInt(el.dataset.idx);
+      if(mpConnected && mpIsHost){
+        mpSend('selectLevel',{level:idx});
+      } else {
+        buildVillage(idx); phase='raid'; requestGamePointerLock();
+      }
+    }
+    else if(action==='open-shop'){ renderShop(); }
+    else if(action==='continue-select'){
+      if(mpConnected && mpIsHost){
+        // The server is already waiting for the host's next selectLevel.
+        mpHostStarted=true;
+        mpRaidEnding=false;
+        renderSelect('Choose Your Next Raid');
+      }else{
+        renderSelect();
+      }
+    }
+    else if(action==='resume'){
+      phase='raid';
+      requestGamePointerLock();
+      if(mpConnected) mpSend('resumeGame',{});
+    }
+    else if(action==='resume-click'){
+      overlay.style.display='none';
+      document.getElementById('hud').style.display='block';
+      requestGamePointerLock();
+    }
+    else if(action==='retreat' && !mpConnected){ phase='raid'; endRaid('retreat'); }
+    else if(action==='buy-weapon'){
+      if(mpConnected && !mpIsHost) return;
+      const w = WEAPONS.find(w=>w.id===el.dataset.id);
+      if(w && gold>=w.cost && !ownedWeapons.has(w.id)){ gold -= w.cost; ownedWeapons.add(w.id); equipWeapon(w.id); renderShop(); mpBroadcastHostLoadout(); }
+    }
+    else if(action==='equip-weapon'){
+      if(mpConnected && !mpIsHost) return;
+      equipWeapon(el.dataset.id); renderShop(); mpBroadcastHostLoadout();
+    }
+    else if(action==='buy-boat'){
+      if(mpConnected && !mpIsHost) return;
+      const b = BOATS.find(b=>b.id===el.dataset.id);
+      if(b && gold>=b.cost && !ownedBoats.has(b.id)){ gold -= b.cost; ownedBoats.add(b.id); renderShop(); mpBroadcastHostLoadout(); }
+    }
+    else if(action==='buy-armor'){
+      if(mpConnected && !mpIsHost) return;
+      const a = ARMORS.find(a=>a.id===el.dataset.id);
+      if(a && gold>=a.cost && !ownedArmor.has(a.id)){ gold -= a.cost; ownedArmor.add(a.id); equipArmor(a.id); renderShop(); mpBroadcastHostLoadout(); }
+    }
+    else if(action==='equip-armor'){
+      if(mpConnected && !mpIsHost) return;
+      equipArmor(el.dataset.id); renderShop(); mpBroadcastHostLoadout();
+    }
+    else if(action==='recruit-ally'){
+      if(mpConnected && !mpIsHost) return;
+      const cap = getMaxAllyCap();
+      const cost = allyRecruitCost(recruitedAllies);
+      if((1+recruitedAllies)<cap && gold>=cost){ gold-=cost; recruitedAllies++; renderShop(); mpBroadcastHostLoadout(); }
+    }
+    else if(action==='copy-password'){ copyPasswordBox(el.dataset.target); }
+    else if(action==='load-password'){
+      const input = document.getElementById(el.dataset.target);
+      const val = input ? input.value : '';
+      if(applyPassword(val)){
+        if(phase==='select') renderSelect('Password loaded — progress restored.');
+        else renderShop('Password loaded — progress restored.');
+        mpBroadcastHostLoadout();
+      } else {
+        if(phase==='select') renderSelect("That password couldn't be read. Check it and try again.");
+        else renderShop("That password couldn't be read. Check it and try again.");
+      }
+    }
+    else if(action==='finale-continue'){
+      overlay.style.background = '';
+      document.getElementById('hud').style.display='none';
+      const finaleMessage='The empire has fallen. You return home laden with the Warlord\'s hoard.';
+      if(mpConnected && mpIsHost){
+        mpSend('finaleContinue',{loadout:mpGetLoadout(),gold,message:finaleMessage});
+        mpRaidEnding=false;
+      }
+      renderShop(finaleMessage);
+    }
+  });
+
+  applyAxeVisual(currentWeapon);
+  updateWeaponModeVisuals();
+  renderSelect();
+
+  // ================= MAIN LOOP =================
+  const clock = new THREE.Clock();
+  function animate(){
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, clock.getDelta());
+    const t = clock.elapsedTime;
+    if((phase==='raid' || phase==='holding') && !P.dead){
+      updateMovement(dt);
+      updateSwing(dt);
+      updateBowDraw(dt);
+      updateGold(dt);
+    }
+    if(phase==='raid' || phase==='holding'){
+      if(mpIsHost || !mpConnected) updateVillagers(dt);
+      if(!P.dead && (mpIsHost || !mpConnected)) updateAllies(dt);
+      updateVillagerFalls(dt);
+      updateEnemyCountHUD();
+      checkWin();
+    }
+    mpUpdate(dt);
+    updateParticles(dt);
+    updateProjectiles(dt);
+    updateBonfire(t);
+    updateHUD();
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
