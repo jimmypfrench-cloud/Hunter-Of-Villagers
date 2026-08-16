@@ -78,7 +78,10 @@ const httpServer = http.createServer((req, res) => {
       "Content-Type": "text/plain"
     });
 
-    res.end("Hunter of Villagers multiplayer server is healthy.");
+    res.end(
+      "Hunter of Villagers multiplayer server is healthy."
+    );
+
     return;
   }
 
@@ -191,11 +194,6 @@ wss.on("connection", (ws) => {
 
         roundId: 0,
 
-        /*
-         * Cached authoritative state.
-         * This is useful if the host disconnects and
-         * another player becomes host.
-         */
         worldSnapshot: null,
         allySnapshot: null,
 
@@ -261,7 +259,8 @@ wss.on("connection", (ws) => {
       if (room.players.length >= MAX_PLAYERS_PER_ROOM) {
         send(ws, {
           type: "error",
-          message: `Room is full. Maximum ${MAX_PLAYERS_PER_ROOM} players.`
+          message:
+            `Room is full. Maximum ${MAX_PLAYERS_PER_ROOM} players.`
         });
         return;
       }
@@ -563,9 +562,10 @@ wss.on("connection", (ws) => {
           y: player.y,
           z: player.z,
           yaw: player.yaw,
-          health: Number.isFinite(Number(data.health))
-            ? Number(data.health)
-            : undefined,
+          health:
+            Number.isFinite(Number(data.health))
+              ? Number(data.health)
+              : undefined,
           name: player.name,
           dead: player.dead
         },
@@ -574,8 +574,9 @@ wss.on("connection", (ws) => {
       };
 
       /*
-       * Only the host is authoritative for the shared world.
+       * Only the host is authoritative for shared world state.
        */
+
       if (
         room.players[0] === player &&
         data.worldSnapshot
@@ -686,16 +687,12 @@ wss.on("connection", (ws) => {
       if (room.roundEnding) return;
       if (!validRoundMessage(room, message)) return;
 
-      /*
-       * Guests report hits to the host.
-       * The host remains authoritative over villagers.
-       */
       if (room.players[0] !== player) {
         const host = room.players[0];
 
         if (!host) return;
 
-        let index = Number(message.index);
+        const index = Number(message.index);
         let dmg = Number(message.dmg);
 
         if (!Number.isInteger(index) || index < 0) {
@@ -719,9 +716,6 @@ wss.on("connection", (ws) => {
         return;
       }
 
-      /*
-       * Host's own hit is simply forwarded to guests.
-       */
       broadcastExcept(room, player, {
         type: "villagerHit",
         index: Number(message.index),
@@ -753,9 +747,6 @@ wss.on("connection", (ws) => {
 
       if (!host || host === player) return;
 
-      /*
-       * Each player may deposit only once per round.
-       */
       if (room.depositedIds.has(player.id)) {
         return;
       }
@@ -950,13 +941,10 @@ wss.on("connection", (ws) => {
     }
 
     /*
-     * If the host disconnects, player 2 becomes host.
+     * If the host disconnects, the next player becomes host.
      */
+
     if (wasHost) {
-      /*
-       * The current room state is preserved.
-       * The new host can continue from the same round.
-       */
       broadcast(room, {
         type: "hostChanged",
         hostId: room.players[0].id,
